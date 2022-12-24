@@ -1,5 +1,5 @@
 import bip68 from 'bip68';
-import { maxLock, ABSOLUTE, RELATIVE } from '../src/satisfyer/maxLock.js';
+import { maxLock, ABSOLUTE, RELATIVE } from '../src/satisfier/maxLock.js';
 describe('maxLock', () => {
   test('throws an error if lockType is undefined', () => {
     expect(() => maxLock(1, 2)).toThrow('lockType must be specified');

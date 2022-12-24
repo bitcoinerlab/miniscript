@@ -425,7 +425,7 @@ export const primitives = {
       //attackers
       //This is not going to work even by setting preimages to unknowns because
       //this is expression insane at the miniscript level.
-      //Read the docs at satisfyer(), argument:unknowns, for the details.
+      //Read the docs at satisfier(), argument:unknowns, for the details.
       throws:
         'Miniscript thresh(2,c:pk_h(key),s:sha256(e38990d0c7fc009880a9c07c23842e886c6bbdc964ce6bdd5817ad357335ee6f),a:hash160(dd69735817e0e3f6f826a9238dc2e291184f0131)) is not sane.'
     },

@@ -2,10 +2,10 @@
   "name": "@bitcoinerlab/miniscript",
   "author": "Jose-Luis Landabaso <landabaso@gmail.com>",
   "license": "MIT",
-  "keywords": ["miniscript", "satisfyer", "bitcoin", "policy", "descriptors"],
+  "keywords": ["miniscript", "satisfier", "bitcoin", "policy", "descriptors"],
   "homepage": "https://bitcoinerlab.com/miniscript",
   "version": "1.0.0",
-  "description": "A Bitcoin policy → miniscript → script compiler and a satisfyer. The satisfyer is a native JavaScript implementation decoupled from the transaction signer. The compiler is a transpiled version of Pieter Wuille's implementation in C++.",
+  "description": "A Bitcoin policy → miniscript → script compiler and a satisfier. The satisfier is a native JavaScript implementation decoupled from the transaction signer. The compiler is a transpiled version of Pieter Wuille's implementation in C++.",
   "main": "./dist/index.js",
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",

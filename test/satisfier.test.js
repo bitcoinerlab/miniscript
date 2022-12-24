@@ -1,18 +1,18 @@
 import { primitives, timeLocks, other } from './fixtures.js';
-import { satisfyer } from '../src/satisfyer/index.js';
+import { satisfier } from '../src/satisfier/index.js';
 
 const createGroupTest = (description, fixtures) =>
   describe(description, () => {
     for (const [testName, fixture] of Object.entries(fixtures)) {
       if (fixture.throws) {
         test(testName, () => {
-          expect(() => satisfyer(fixture.miniscript, fixture.unknowns)).toThrow(
+          expect(() => satisfier(fixture.miniscript, fixture.unknowns)).toThrow(
             fixture.throws
           );
         });
       } else {
         test(testName, () => {
-          const result = satisfyer(fixture.miniscript, fixture.unknowns);
+          const result = satisfier(fixture.miniscript, fixture.unknowns);
           expect(result.nonMalleableSats).toEqual(
             expect.arrayContaining(fixture.nonMalleableSats)
           );

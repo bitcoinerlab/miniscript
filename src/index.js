@@ -1,4 +1,4 @@
-import { satisfyer } from './satisfyer/index.js';
+import { satisfier } from './satisfier/index.js';
 import { compilePolicy, compileMiniscript } from './miniscript.js';
 
-export { compilePolicy, compileMiniscript, satisfyer };
+export { compilePolicy, compileMiniscript, satisfier };

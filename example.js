@@ -3,7 +3,7 @@
 const {
   compilePolicy,
   compileMiniscript,
-  satisfyer
+  satisfier
 } = require('./dist/index.js');
 
 const policy = 'or(and(pk(A),older(8640)),pk(B))';
@@ -17,7 +17,7 @@ const {
 const { asm: asmFromMiniscript, issane: issaneFromMiniscript } =
   compileMiniscript(miniscript);
 
-const satisfactions = satisfyer(miniscript);
+const satisfactions = satisfier(miniscript);
 
 console.assert(asmFromPolicy === asmFromMiniscript, 'ERROR: Asm mismatch.');
 console.assert(

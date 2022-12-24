@@ -5,11 +5,11 @@ import { maxLock, ABSOLUTE, RELATIVE } from './maxLock.js';
  * Given a `solutionTemplate`, such as "0 dsat(X) sat(Y) 1 sat(Z)", and given the
  * sat/dissatisfactions for X, Y, Z,... (comprised in `satisfactionsMap`) it
  * computes all the possible combination of solutions returned in an array
- * of {@link module:satisfyer.Solution}.
+ * of {@link module:satisfier.Solution}.
  *
  * Terminology:
  *
- * A solution of type {@link module:satisfyer.Solution} is an object
+ * A solution of type {@link module:satisfier.Solution} is an object
  * that contains an unlocking witness for a
  * miniscript fragment.
  *
@@ -29,7 +29,7 @@ import { maxLock, ABSOLUTE, RELATIVE } from './maxLock.js';
  *
  * F.ex., this is a `solutionTemplate = "0 dsat(X) sat(Y) 1 sat(Z)"`.
  *
- * satisfactions is an object of type {@link module:satisfyer.Satisfactions}
+ * satisfactions is an object of type {@link module:satisfier.Satisfactions}
  * that comprises both sat and dsat solutions for a
  * miniscript fragment:
  *
@@ -49,13 +49,13 @@ import { maxLock, ABSOLUTE, RELATIVE } from './maxLock.js';
  *
  * @param {string} solutionTemplate - a string containing sat or dsat expressions such as: "0 dsat(X) sat(Y) 1 sat(Z)"
  * @param {Object} satisfactionsMap - an object mapping the arguments for the sat and dsat expressions
- * in `solutionTemplate` (f.ex: `X, Y, Z`) to their {@link module:satisfyer.Satisfactions}.
- * @param {module:satisfyer.Satisfactions} [satisfactionsMap.X] - The satisfactions for `X`
- * @param {module:satisfyer.Satisfactions} [satisfactionsMap.Y] - The satisfactions for `Y`
- * @param {module:satisfyer.Satisfactions} [satisfactionsMap.Z] - The satisfactions for `Z`
- * @param {module:satisfyer.Satisfactions} [satisfactionsMap....] - The satisfactions for `...`
+ * in `solutionTemplate` (f.ex: `X, Y, Z`) to their {@link module:satisfier.Satisfactions}.
+ * @param {module:satisfier.Satisfactions} [satisfactionsMap.X] - The satisfactions for `X`
+ * @param {module:satisfier.Satisfactions} [satisfactionsMap.Y] - The satisfactions for `Y`
+ * @param {module:satisfier.Satisfactions} [satisfactionsMap.Z] - The satisfactions for `Z`
+ * @param {module:satisfier.Satisfactions} [satisfactionsMap....] - The satisfactions for `...`
  *
- * @returns {module:satisfyer.Solution[]} an array of solutions, containing the resulting witness, nSequence and nLockTime values, and whether the solution has a HASSIG marker or should be marked as "DONTUSE".
+ * @returns {module:satisfier.Solution[]} an array of solutions, containing the resulting witness, nSequence and nLockTime values, and whether the solution has a HASSIG marker or should be marked as "DONTUSE".
  */
 
 function combine(solutionTemplate, satisfactionsMap) {

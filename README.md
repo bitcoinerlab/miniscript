@@ -7,7 +7,7 @@ It includes a transpilation of [Peter Wuille's C++ code](https://github.com/sipa
 ## Features
 
 - Compile Policies into Miniscript and Bitcoin scripts.
-- A Miniscript Satisfyer that discards malleable solutions.
+- A Miniscript Satisfier that discards malleable solutions.
 - The Miniscript Satisfier is able to generate expressive witness scripts from Miniscripts that use variables, such as `pk(key)`.
 For example, Miniscript `and_v(v:pk(key),after(10))` generates `[{ witness: '<sig(key)>', nLockTime: 10 }]`.
 - The ability to generate different satisfactions depending on the presence of `unknowns`.
@@ -87,27 +87,27 @@ const { asm, issane } = compileMiniscript(miniscript);
 
 ### Generating expressive witness scripts
 
-To generate an expressive witness script from a Miniscript, you can use the satisfyer function:
+To generate an expressive witness script from a Miniscript, you can use the satisfier function:
 
 ```javascript
-const { satisfyer } = require('@bitcoinerlab/miniscript');
+const { satisfier } = require('@bitcoinerlab/miniscript');
 
 const miniscript =
   'c:or_i(andor(c:pk_h(key1),pk_h(key2),pk_h(key3)),pk_k(key4))';
 
-const satisfactions = satisfyer(miniscript);
+const satisfactions = satisfier(miniscript);
 ```
 
 You can also set `unknowns`:
 
 ```javascript
-const { satisfyer } = require('@bitcoinerlab/miniscript');
+const { satisfier } = require('@bitcoinerlab/miniscript');
 
 const miniscript =
   'c:or_i(andor(c:pk_h(key1),pk_h(key2),pk_h(key3)),pk_k(key4))';
 const unknowns = ['<sig(key1)>', '<sig(key2)>'];
 
-const satisfactions = satisfyer(miniscript, unknowns);
+const satisfactions = satisfier(miniscript, unknowns);
 ```
 
 ## Documentation
