@@ -1,3 +1,6 @@
+// Copyright (c) 2022 Jose-Luis Landabaso
+// Distributed under the MIT software license
+
 /** @module maxLock */
 import bip68 from 'bip68';
 

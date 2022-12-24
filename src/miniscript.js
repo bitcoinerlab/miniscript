@@ -1,3 +1,7 @@
+// Initial author: Pieter Wuille ( https://github.com/sipa/miniscript/blob/master/index.html)
+// Adapted by Jose-Luis Landabaso:
+//  compilePolicy, compileMiniscript with issane, issanesublevel and cleanAsm
+
 /** @module miniscript */
 
 import bindings from './bindings.js';

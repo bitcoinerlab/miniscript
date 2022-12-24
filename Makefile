@@ -6,5 +6,6 @@ miniscript:
 	git clone https://github.com/sipa/miniscript
 	#484386a50dbda962669cc163f239fe16e101b6f0 is the last commit where this Makefile has been checked to work:
 	git -C miniscript reset --hard 484386a50dbda962669cc163f239fe16e101b6f0
+	cp js_bindings.cpp miniscript/
 clean:
 	rm -rf miniscript src/bindings.js
