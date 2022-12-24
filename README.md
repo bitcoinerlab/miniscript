@@ -8,10 +8,12 @@ It includes a transpilation of [Peter Wuille's C++ code](https://github.com/sipa
 
 - Compile Miniscript policies into Miniscript and Bitcoin scripts.
 - A Miniscript satisfyer that discards malleable solutions.
-- Generate expressive witness scripts from Miniscript. F.ex., Miniscript `and_v(v:pk(key),after(10))` is satisfied with: `[{ witness: '<sig(key)>', nLockTime: 10 }]`.
-- Generate different satisfactions depending on `unknowns`. F.ex., Miniscript `c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))` is satisfied with: `[{ witness: '<sig(key2)> <ripemd160_preimage(H)> 0' }]`. However, when setting `unknowns: ['<ripemd160_preimage(H)>']`, the satisfaction is: `[{ witness: '<sig(key2)> <sig(key1)>' }]` as it cannot be considered malleable (pre-image is unknown).
+- Generate expressive witness scripts from Miniscript.
+F.ex., Miniscript `and_v(v:pk(key),after(10))` is satisfied with: `[{ witness: '<sig(key)>', nLockTime: 10 }]`.
+- Generate different satisfactions depending on `unknowns`.
+F.ex., Miniscript `c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))` is satisfied with: `[{ witness: '<sig(key2)> <ripemd160_preimage(H)> 0' }]`.
+However, when setting `unknowns: ['<ripemd160_preimage(H)>']`, the satisfaction is: `[{ witness: '<sig(key2)> <sig(key1)>' }]` as it cannot be considered malleable (pre-image is unknown).
 - Thoroughly tested.
-
 
 ## Installation
 
@@ -19,7 +21,9 @@ It includes a transpilation of [Peter Wuille's C++ code](https://github.com/sipa
 
 To install the package, use npm:
 
+```
 npm install @bitcoinerlab/miniscript
+```
 
 ### From source
 
@@ -37,7 +41,7 @@ git clone https://github.com/<your-username>/bitcoin-miniscript.git
 npm install
 ```
 
-3. Make sure you have an [`em++` compiler](https://emscripten.org/) and available in your PATH.
+3. Make sure you have [`em++` compiler](https://emscripten.org/) and available in your PATH.
 
 4. Run the Makefile:
 
@@ -45,13 +49,15 @@ npm install
 make
 ```
 
-This will build the project and generate the necessary Javascript files.
+This will build Wuille's sources and generate the necessary Javascript files.
 
-4. Build it:
+5. Build it:
 
 ```
 npm run build
 ```
+
+This will build the project and generate the necessary files in the dist directory.
 
 ## Usage
 
@@ -73,9 +79,8 @@ To compile a Miniscript into Bitcoin ASM you can use the `compileMiniscript` fun
 ```javascript
 const { compileMiniscript } = require('@bitcoinerlab/miniscript');
 
-const { asm, issane } = compileMiniscript(
-  'and_v(v:pk(key),or_b(l:after(100),al:after(200)))'
-);
+const miniscript = 'and_v(v:pk(key),or_b(l:after(100),al:after(200)))';
+const { asm, issane } = compileMiniscript(miniscript);
 ```
 
 ### Generating expressive witness scripts
@@ -109,6 +114,7 @@ To generate the documentation for this project, you can use the following comman
 ```
 npm run docs
 ```
+
 This will generate the documentation in the `docs` directory.
 
 ## License
