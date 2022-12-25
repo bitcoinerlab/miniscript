@@ -11,9 +11,9 @@
     "descriptors"
   ],
   "homepage": "https://bitcoinerlab.com/miniscript",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a Policy and Miniscript compiler, as well as a Satisfier for generating expressive witness scripts.",
-  "main": "./dist/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",
     "prepublishOnly": "npm run build && make && npm test",
