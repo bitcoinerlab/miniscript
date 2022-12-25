@@ -2,13 +2,21 @@
   "name": "@bitcoinerlab/miniscript",
   "author": "Jose-Luis Landabaso <landabaso@gmail.com>",
   "license": "MIT",
-  "keywords": ["miniscript", "satisfier", "bitcoin", "policy", "descriptors"],
+  "keywords": [
+    "miniscript",
+    "satisfier",
+    "bitcoin",
+    "policy",
+    "asm",
+    "descriptors"
+  ],
   "homepage": "https://bitcoinerlab.com/miniscript",
   "version": "1.0.0",
-  "description": "A Bitcoin policy → miniscript → script compiler and a satisfier. The satisfier is a native JavaScript implementation decoupled from the transaction signer. The compiler is a transpiled version of Pieter Wuille's implementation in C++.",
+  "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a Policy and Miniscript compiler, as well as a Satisfier for generating expressive witness scripts.",
   "main": "./dist/index.js",
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",
+    "prepublishOnly": "npm run build && make && npm test",
     "docs": "jsdoc -c jsdoc.json",
     "test": "jest",
     "example": "node ./example.js"
@@ -26,7 +34,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bitcoinerlab/miniscript.git"
+    "url": "git+https://github.com/bitcoinerlab/miniscript.git"
   },
   "devDependencies": {
     "@babel/plugin-transform-modules-commonjs": "^7.19.6",
@@ -38,5 +46,8 @@
   },
   "dependencies": {
     "bip68": "^1.0.4"
+  },
+  "bugs": {
+    "url": "https://github.com/bitcoinerlab/miniscript/issues"
   }
 }

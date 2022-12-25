@@ -32,7 +32,7 @@ To download the source code and build the project, you can use the following ste
 1. Clone the repository:
 
 ```
-git clone https://github.com/<your-username>/bitcoin-miniscript.git
+git clone https://github.com/bitcoinerlab/miniscript.git
 ```
 
 2. Install the dependencies:
