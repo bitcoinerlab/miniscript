@@ -2,7 +2,7 @@
 
 This project is a JavaScript implementation of Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions.
 
-It includes a transpilation of [Peter Wuille's C++ code](https://github.com/sipa/miniscript) for compiling spending policies into Miniscript and Bitcoin scripts, as well as a Miniscript Satisfier for generating explicit witness scripts that are decoupled from the tx signer.
+It includes a transpilation of [Peter Wuille's C++ code](https://github.com/sipa/miniscript) for compiling spending policies into Miniscript and Bitcoin scripts, as well as a novel Miniscript Satisfier for generating explicit witness scripts that are decoupled from the tx signer.
 
 ## Features
 
@@ -53,9 +53,9 @@ const miniscript = 'and_v(v:pk(key),or_b(l:after(100),al:after(200)))';
 const { asm, issane } = compileMiniscript(miniscript);
 ```
 
-### Generating expressive witness scripts
+### Generating explicit witness scripts
 
-To generate an expressive witness script from a Miniscript, you can use the `satisfier` function:
+To generate an explicit witness script from a Miniscript, you can use the `satisfier` function:
 
 ```javascript
 const { satisfier } = require('@bitcoinerlab/miniscript');
