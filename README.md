@@ -2,13 +2,13 @@
 
 This project is a JavaScript implementation of Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions.
 
-It includes a transpilation of [Peter Wuille's C++ code](https://github.com/sipa/miniscript) for compiling spending policies into Miniscript and Bitcoin scripts, as well as a Miniscript Satisfier for generating expressive witness scripts from the input Miniscript.
+It includes a transpilation of [Peter Wuille's C++ code](https://github.com/sipa/miniscript) for compiling spending policies into Miniscript and Bitcoin scripts, as well as a Miniscript Satisfier for generating explicit witness scripts that are decoupled from the tx signer.
 
 ## Features
 
 - Compile Policies into Miniscript and Bitcoin scripts.
 - A Miniscript Satisfier that discards malleable solutions.
-- The Miniscript Satisfier is able to generate expressive witness scripts from Miniscripts that use variables, such as `pk(key)`.
+- The Miniscript Satisfier is able to generate explicit witness scripts from Miniscripts using variables, such as `pk(key)`.
 
   For example, Miniscript `and_v(v:pk(key),after(10))` can be satisfied with `[{ witness: '<sig(key)>', nLockTime: 10 }]`.
 - The ability to generate different satisfactions depending on the presence of `unknowns`.
@@ -39,8 +39,7 @@ const policy = 'or(and(pk(A),older(8640)),pk(B))';
 
 const { miniscript, asm, issane } = compilePolicy(policy);
 ```
-
-Where `issane` is a boolean that indicates whether the Miniscript is valid and follows the consensus and standardness rules for Bitcoin scripts. It should have non-malleable solutions, not mix different timelock units on a single branch of the script, and not contain duplicate keys. In other words, it should be a well-formed and standards-compliant script that can be safely used in transactions.
+`issane` is a boolean that indicates whether the Miniscript is valid and follows the consensus and standardness rules for Bitcoin scripts. A sane Miniscript should have non-malleable solutions, not mix different timelock units on a single branch of the script, and not contain duplicate keys. In other words, it should be a well-formed and standards-compliant script that can be safely used in transactions.
 
 ### Compiling Miniscript into Bitcoin script
 
@@ -66,6 +65,7 @@ const miniscript =
 
 const satisfactions = satisfier(miniscript);
 ```
+`satisfier` makes sure that output `satisfactions` are non-malleable and that the `miniscript` is sane.
 
 You can also set `unknowns`:
 
@@ -82,6 +82,8 @@ const satisfactions = satisfier(miniscript, unknowns);
 ## Authors and Contributors
 
 The project was initially developed and is currently maintained by [Jose-Luis Landabaso](https://github.com/landabaso). Contributions and help from other developers are welcome.
+
+Here are some resources to help you get started with contributing:
 
 ### Building from source
 
