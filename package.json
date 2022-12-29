@@ -10,8 +10,8 @@
     "asm",
     "descriptors"
   ],
-  "homepage": "https://bitcoinerlab.com/miniscript",
-  "version": "1.0.2",
+  "homepage": "https://bitcoinerlab.com/modules/miniscript",
+  "version": "1.0.3",
   "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a Policy and Miniscript compiler, as well as a novel Satisfier for generating expressive witness scripts.",
   "main": "dist/index.js",
   "scripts": {
