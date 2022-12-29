@@ -103,7 +103,7 @@ const { nonMalleableSats, malleableSats, unknownSats } = satisfier(
 );
 ```
 
-When passing `unknowns`, `satisfier` returns an additional object: `{ unknownSats }`with an array of objects representing satisfactions that containt some of the `unknown` pieces of information:
+When passing `unknowns`, `satisfier` returns an additional object: `{ unknownSats }` with an array of objects representing satisfactions that containt some of the `unknown` pieces of information:
 
 ```javascript
 nonMalleableSats: [
