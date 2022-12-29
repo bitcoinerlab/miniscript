@@ -103,7 +103,7 @@ const { nonMalleableSats, malleableSats, unknownSats } = satisfier(
 );
 ```
 
-When passing `unknowns`, `satisfier` returns an addition object key: `{ unknownSats }`with an array of objects representing satisfactions that containt some of the `unknown` pieces of information:
+When passing `unknowns`, `satisfier` returns an additional object: `{ unknownSats }`with an array of objects representing satisfactions that containt some of the `unknown` pieces of information:
 
 ```javascript
 nonMalleableSats: [
@@ -149,7 +149,7 @@ npm install
 make
 ```
 
-This will download and build Wuille's sources and generate the necessary Javascript files.
+This will download and build Wuille's sources and generate the necessary Javascript files for the compilers.
 
 5. Build the project:
 
