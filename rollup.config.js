@@ -1,4 +1,7 @@
 import commonjs from 'rollup-plugin-commonjs';
+import terser from '@rollup/plugin-terser';
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
   input: './src/index.js',
@@ -6,5 +9,5 @@ export default {
     file: './dist/index.js',
     format: 'cjs'
   },
-  plugins: [commonjs()]
+  plugins: [commonjs(), isProduction && terser()]
 };
