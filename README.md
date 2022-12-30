@@ -2,13 +2,13 @@
 
 This project is a JavaScript implementation of [Bitcoin Miniscript](https://bitcoin.sipa.be/miniscript/), a high-level language for describing Bitcoin spending conditions.
 
-It includes a novel Miniscript Satisfier for generating explicit witness scripts that are decoupled from the tx signer, as well as a transpilation of [Peter Wuille's C++ code](https://github.com/sipa/miniscript) for compiling spending policies into Miniscript and Bitcoin scripts.
+It includes a novel Miniscript Satisfier for generating explicit script witnesses that are decoupled from the tx signer, as well as a transpilation of [Peter Wuille's C++ code](https://github.com/sipa/miniscript) for compiling spending policies into Miniscript and Bitcoin scripts.
 
 ## Features
 
 - Compile Policies into Miniscript and Bitcoin scripts.
 - A Miniscript Satisfier that discards malleable solutions.
-- The Miniscript Satisfier is able to generate explicit witness scripts from Miniscripts using variables, such as `pk(key)`.
+- The Miniscript Satisfier is able to generate explicit script witnesses from Miniscripts using variables, such as `pk(key)`.
 
   For example, Miniscript `and_v(v:pk(key),after(10))` can be satisfied with `[{ witness: '<sig(key)>', nLockTime: 10 }]`.
 
@@ -58,9 +58,9 @@ const miniscript = 'and_v(v:pk(key),or_b(l:after(100),al:after(200)))';
 const { asm, issane } = compileMiniscript(miniscript);
 ```
 
-### Generating explicit witness scripts
+### Generating explicit script witnesses
 
-To generate an explicit witness script from a Miniscript, you can use the `satisfier` function:
+To generate explicit script witnesses from a Miniscript, you can use the `satisfier` function:
 
 ```javascript
 const { satisfier } = require('@bitcoinerlab/miniscript');
@@ -115,7 +115,7 @@ unknownSats: [ {witness: "<sig(key2)> <key2> <sig(key1)> <key1> 1"} ]
 
 The objects returned in the `nonMalleableSats`, `malleableSats` and `unknownSats` arrays consist of the following properties:
 
-- `witness`: a string with the witness script.
+- `witness`: a string with the script witness.
 - `nSequence`: an integer representing the nSequence value, if needed.
 - `nLockTime`: an integer representing the nLockTime value, if needed.
 
