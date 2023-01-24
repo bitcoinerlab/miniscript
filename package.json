@@ -17,7 +17,7 @@
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",
     "build:prod": "NODE_ENV=production rollup -c --bundleConfigAsCjs",
-    "prepublishOnly": "npm run build:prod && make && npm test",
+    "prepublishOnly": "npm run build:prod && make clean && make && npm test",
     "docs": "jsdoc -c jsdoc.json",
     "test": "jest",
     "example": "node ./example.js"

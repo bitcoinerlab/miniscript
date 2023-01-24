@@ -28,9 +28,7 @@ const cleanAsm = asm =>
   asm
     .trim()
     .replace(/\n/g, ' ')
-    .replace(/ +(?= )/g, '')
-    .replace(/<h>/g, '<H>'); //This is a bug/type in wuilles' miniscript. It returns <h> instead of <H> for
-//preimages
+    .replace(/ +(?= )/g, '');
 
 /**
  * Compiles a miniscript policy into a miniscript expression (if possible).
