@@ -1,5 +1,5 @@
 // Initial author: Pieter Wuille ( https://github.com/sipa/miniscript/blob/master/index.html)
-// Adapted by Jose-Luis Landabaso:
+// Adapted by Jose-Luis Landabaso - https://bitcoinerlab.com:
 //  compilePolicy, compileMiniscript with issane, issanesublevel and cleanAsm
 
 /** @module miniscript */
