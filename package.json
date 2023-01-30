@@ -14,6 +14,7 @@
   "version": "1.0.5",
   "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a Policy and Miniscript compiler, as well as a novel Satisfier for generating expressive witness scripts.",
   "main": "dist/index.js",
+  "types": "types/index.d.ts",
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",
     "build:prod": "NODE_ENV=production rollup -c --bundleConfigAsCjs",
