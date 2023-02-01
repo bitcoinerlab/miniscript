@@ -8,15 +8,15 @@ It includes a novel Miniscript Satisfier for generating explicit script witnesse
 
 - Compile Policies into Miniscript and Bitcoin scripts.
 - A Miniscript Satisfier that discards malleable solutions.
-- The Miniscript Satisfier is able to generate explicit script witnesses from Miniscripts using variables, such as `pk(key)`.
+- The Miniscript Satisfier is able to generate explicit script witnesses from Miniscript expressions using variables, such as `pk(key)`.
 
-  For example, Miniscript `and_v(v:pk(key),after(10))` can be satisfied with `[{ witness: '<sig(key)>', nLockTime: 10 }]`.
+  For example, Miniscript `and_v(v:pk(key),after(10))` can be satisfied with `[{ asm: '<sig(key)>', nLockTime: 10 }]`.
 
 - The ability to generate different satisfactions depending on the presence of `unknowns`.
 
-  For example, Miniscript `c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))` can be satisfied with: `[{ witness: '<sig(key2)> <ripemd160_preimage(H)> 0' }]`.
+  For example, Miniscript `c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))` can be satisfied with: `[{ asm: '<sig(key2)> <ripemd160_preimage(H)> 0' }]`.
 
-  However, if `unknowns: ['<ripemd160_preimage(H)>']` is set, then the Miniscript can be satisfied with: `[{ witness: '<sig(key2)> <sig(key1)>' }]` because this solution can no longer be considered malleable, given then assumption that an attacker does not have access to the preimage.
+  However, if `unknowns: ['<ripemd160_preimage(H)>']` is set, then the Miniscript can be satisfied with: `[{ asm: '<sig(key2)> <sig(key1)>' }]` because this solution can no longer be considered malleable, given then assumption that an attacker does not have access to the preimage.
 
 - Thoroughly tested.
 
@@ -80,9 +80,9 @@ In the example above `nonMalleableSats` is:
 
 ```javascript
 nonMalleableSats: [
-  {witness: "<sig(key4)> 0"}
-  {witness: "<sig(key3)> <key3> 0 <key1> 1"}
-  {witness: "<sig(key2)> <key2> <sig(key1)> <key1> 1"}
+  {asm: "<sig(key4)> 0"}
+  {asm: "<sig(key3)> <key3> 0 <key1> 1"}
+  {asm: "<sig(key2)> <key2> <sig(key1)> <key1> 1"}
 ]
 ```
 
@@ -107,15 +107,15 @@ When passing `unknowns`, `satisfier` returns an additional object: `{ unknownSat
 
 ```javascript
 nonMalleableSats: [
-  {witness: "<sig(key4)> 0"}
-  {witness: "<sig(key3)> <key3> 0 <key1> 1"}
+  {asm: "<sig(key4)> 0"}
+  {asm: "<sig(key3)> <key3> 0 <key1> 1"}
 ]
-unknownSats: [ {witness: "<sig(key2)> <key2> <sig(key1)> <key1> 1"} ]
+unknownSats: [ {asm: "<sig(key2)> <key2> <sig(key1)> <key1> 1"} ]
 ```
 
 The objects returned in the `nonMalleableSats`, `malleableSats` and `unknownSats` arrays consist of the following properties:
 
-- `witness`: a string with the script witness.
+- `asm`: a string with the script witness.
 - `nSequence`: an integer representing the nSequence value, if needed.
 - `nLockTime`: an integer representing the nLockTime value, if needed.
 

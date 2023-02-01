@@ -20,12 +20,12 @@ import { maxLock, ABSOLUTE, RELATIVE } from './maxLock.js';
  * script, they can produce True or False. These solutions are called sats and
  * dsats, respectively.
  *
- * For example, take this solution: `sol = {witness:"sig key"}`.
+ * For example, take this solution: `sol = {asm:"sig key"}`.
  *
  * When matched with `DUP HASH160 <HASH160(key)> EQUALVERIFY CHECKSIG` it
  * produces `True`, that is, a valid sat solution: `<sig> <key> DUP HASH160 <HASH160(key)> EQUALVERIFY CHECKSIG`.
  *
- * A solution object can also contain other associated pieces of information: `solution: {witness, nLockTime, nSequence}`:
+ * A solution object can also contain other associated pieces of information: `solution: {asm, nLockTime, nSequence}`:
  *   -  nLockTime, nSequence: (number/str) interlock attached to this transaction
  *
  * A `solutionTemplate` describes a solution using sats and dsats of subexpressions.
@@ -117,7 +117,7 @@ function combine(solutionTemplate, satisfactionsMap) {
               postSolution.nLockTime,
               ABSOLUTE
             ),
-            witness: `${pre}${currSolution.witness}${postSolution.witness}`
+            asm: `${pre}${currSolution.asm}${postSolution.asm}`
           });
         }
       } else {
@@ -125,7 +125,7 @@ function combine(solutionTemplate, satisfactionsMap) {
         //sat/dsats
         solutions.push({
           ...currSolution,
-          witness: `${pre}${currSolution.witness}${post}`
+          asm: `${pre}${currSolution.asm}${post}`
         });
       }
     }
@@ -145,40 +145,40 @@ function combine(solutionTemplate, satisfactionsMap) {
  */
 export const satisfactionsMaker = {
   0: () => ({
-    dsats: [{ witness: `` }]
+    dsats: [{ asm: `` }]
   }),
   1: () => ({
-    sats: [{ witness: `` }]
+    sats: [{ asm: `` }]
   }),
   pk_k: key => ({
-    dsats: [{ witness: `0` }],
-    sats: [{ witness: `<sig(${key})>` }]
+    dsats: [{ asm: `0` }],
+    sats: [{ asm: `<sig(${key})>` }]
   }),
   pk_h: key => ({
-    dsats: [{ witness: `0 <${key}>` }],
-    sats: [{ witness: `<sig(${key})> <${key}>` }]
+    dsats: [{ asm: `0 <${key}>` }],
+    sats: [{ asm: `<sig(${key})> <${key}>` }]
   }),
   older: n => ({
-    sats: [{ witness: ``, nSequence: n }]
+    sats: [{ asm: ``, nSequence: n }]
   }),
   after: n => ({
-    sats: [{ witness: ``, nLockTime: n }]
+    sats: [{ asm: ``, nLockTime: n }]
   }),
   sha256: h => ({
-    sats: [{ witness: `<sha256_preimage(${h})>` }],
-    dsats: [{ witness: `<random_preimage()>` }]
+    sats: [{ asm: `<sha256_preimage(${h})>` }],
+    dsats: [{ asm: `<random_preimage()>` }]
   }),
   ripemd160: h => ({
-    sats: [{ witness: `<ripemd160_preimage(${h})>` }],
-    dsats: [{ witness: `<random_preimage()>` }]
+    sats: [{ asm: `<ripemd160_preimage(${h})>` }],
+    dsats: [{ asm: `<random_preimage()>` }]
   }),
   hash256: h => ({
-    sats: [{ witness: `<hash256_preimage(${h})>` }],
-    dsats: [{ witness: `<random_preimage()>` }]
+    sats: [{ asm: `<hash256_preimage(${h})>` }],
+    dsats: [{ asm: `<random_preimage()>` }]
   }),
   hash160: h => ({
-    sats: [{ witness: `<hash160_preimage(${h})>` }],
-    dsats: [{ witness: `<random_preimage()>` }]
+    sats: [{ asm: `<hash160_preimage(${h})>` }],
+    dsats: [{ asm: `<random_preimage()>` }]
   }),
   andor: (X, Y, Z) => ({
     dsats: [
@@ -313,7 +313,7 @@ export const satisfactionsMaker = {
     //OP_0 is a dummy OP, needed because of a bug in Bitcoin
     if (typeof k !== 'number') throw new Error('k must be a number:' + k);
     if (k === 0) throw new Error('k cannot be 0');
-    const dsats = [{ witness: '0 '.repeat(k + 1).trim() }];
+    const dsats = [{ asm: '0 '.repeat(k + 1).trim() }];
 
     // Create all combinations of k signatures
     function keyCombinations(keys, k) {
@@ -334,21 +334,21 @@ export const satisfactionsMaker = {
       return combinations;
     }
 
-    const witnesses = [];
-    // Create witnesses from keyCombination
+    const asms = [];
+    // Create asms from keyCombination
     keyCombinations(keys, k).forEach(combination => {
-      let witness = '0';
+      let asm = '0';
       combination.forEach(key => {
-        witness += ` <sig(${key})>`;
+        asm += ` <sig(${key})>`;
       });
-      witnesses.push(witness);
+      asms.push(asm);
     });
 
-    let witness = '0';
+    let asm = '0';
     for (let i = 0; i < k; i++) {
-      witness += ` <sig(${keys[i]})>`;
+      asm += ` <sig(${keys[i]})>`;
     }
-    const sats = witnesses.map(witness => ({ witness }));
+    const sats = asms.map(asm => ({ asm }));
 
     return { sats, dsats };
   },
@@ -365,7 +365,7 @@ export const satisfactionsMaker = {
     sats: [...combine(`sat(X)`, { X })]
   }),
   d: X => ({
-    dsats: [{ witness: `0` }],
+    dsats: [{ asm: `0` }],
     sats: [...combine(`sat(X) 1`, { X })]
   }),
   v: X => ({
@@ -409,13 +409,13 @@ export const satisfactionsMaker = {
     const dsats = [];
     const sats = [];
 
-    dsats.push({ witness: `0` });
+    dsats.push({ asm: `0` });
 
     //Filter the dsats of X with Non Zero Top Stack (nztp).
     const dsats_nzts = X.dsats.filter(
       //The top stack corresponds to the last element pushed to the stack,
       //that is, the last element in the produced witness
-      solution => solution.witness.trim().split(' ').pop() !== '0'
+      solution => solution.asm.trim().split(' ').pop() !== '0'
     );
     dsats.push(...dsats_nzts);
 

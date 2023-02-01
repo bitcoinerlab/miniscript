@@ -10,7 +10,7 @@ import { compileMiniscript } from '../miniscript.js';
  * @typedef {Object} module:satisfier.Solution
  * @property {number} nSequence - the maximum nSequence time of all the sat() or dsat() expressions in the solution.
  * @property {number} nLockTime - the maximum nLockTime of all the sat() or dsat() expressions in the solution.
- * @property {string} witness - the resulting witness after combining all the sat() or dsat() expressions.
+ * @property {string} asm - the resulting witness after combining all the sat() or dsat() expressions.
  */
 
 /**
@@ -22,14 +22,14 @@ import { compileMiniscript } from '../miniscript.js';
 
 /**
  * Computes the weight units (WU) of a witness.
- * @param {string} witness - the witness to compute the WU of.
+ * @param {string} asm - the witness to compute the WU of.
  * @returns {number} the weight units (WU) of the witness.
  */
-function witnessWU(witness) {
+function witnessWU(asm) {
   // Split the witness string into an array of substrings
   // a miniscipt witness is either, <sig..., <sha256..., <hash256...,
   // <ripemd160..., <hash160...,  <... (for pubkeys) 0 or 1
-  const substrings = witness.split(' ');
+  const substrings = asm.split(' ');
 
   // Initialize the sum to 0
   let wu = 0;
@@ -91,7 +91,7 @@ function malleabilityAnalysis(sats) {
       //(does not mutate sats)
       sat = { ...sat };
       //Extract the signatures used in this witness as an array
-      sat.signatures = sat.witness.split(' ').filter(op => {
+      sat.signatures = sat.asm.split(' ').filter(op => {
         return op.startsWith('<sig');
       });
       //A non-zero solution without a signature is malleable, and a solution
@@ -101,13 +101,13 @@ function malleabilityAnalysis(sats) {
       }
       //<random_preimage()> is a dissatisfaction for a preimage. It is
       //interchangable for any 32 bytes random number and thus, it is malleable.
-      if (sat.witness.includes('<random_preimage()>')) {
+      if (sat.asm.includes('<random_preimage()>')) {
         sat.dontuse = true;
       }
       return sat;
     })
     // Sort sats by weight unit in ascending order
-    .sort((a, b) => witnessWU(a.witness) - witnessWU(b.witness));
+    .sort((a, b) => witnessWU(a.asm) - witnessWU(b.asm));
 
   for (const sat of sats) {
     //For the same nLockTime and nSequence, check if otherSat signatures are a
@@ -315,8 +315,8 @@ export const satisfier = (miniscript, unknowns = []) => {
     if (typeof sat.nSequence === 'undefined') delete sat.nSequence;
     if (typeof sat.nLockTime === 'undefined') delete sat.nLockTime;
     //Clean format: 1 consecutive spaces at most, no leading & trailing spaces
-    sat.witness = sat.witness.replace(/  +/g, ' ').trim();
-    if (unknowns.some(unknown => sat.witness.includes(unknown))) {
+    sat.asm = sat.asm.replace(/  +/g, ' ').trim();
+    if (unknowns.some(unknown => sat.asm.includes(unknown))) {
       unknownSats.push(sat);
     } else {
       knownSats.push(sat);

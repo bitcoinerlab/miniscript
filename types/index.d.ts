@@ -16,17 +16,17 @@ export declare const satisfier: (
   unknowns?: string[]
 ) => {
   unknownSats?: Array<{
-    witness: string;
+    asm: string;
     nLockTime?: number;
     nSequence?: number;
   }>;
   nonMalleableSats?: Array<{
-    witness: string;
+    asm: string;
     nLockTime?: number;
     nSequence?: number;
   }>;
   malleableSats?: Array<{
-    witness: string;
+    asm: string;
     nLockTime?: number;
     nSequence?: number;
   }>;

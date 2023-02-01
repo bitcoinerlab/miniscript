@@ -18,14 +18,14 @@ export const primitives = {
   'c:pk_k(key)': {
     miniscript: 'c:pk_k(key)',
     script: '<key> OP_CHECKSIG',
-    nonMalleableSats: [{ witness: '<sig(key)>' }],
+    nonMalleableSats: [{ asm: '<sig(key)>' }],
     malleableSats: []
   },
   //same as above
   'pk(key)': {
     miniscript: 'pk(key)',
     script: '<key> OP_CHECKSIG',
-    nonMalleableSats: [{ witness: '<sig(key)>' }],
+    nonMalleableSats: [{ asm: '<sig(key)>' }],
     malleableSats: []
   },
 
@@ -33,14 +33,14 @@ export const primitives = {
   'c:pk_h(key)': {
     miniscript: 'c:pk_h(key)',
     script: 'OP_DUP OP_HASH160 <HASH160(key)> OP_EQUALVERIFY OP_CHECKSIG',
-    nonMalleableSats: [{ witness: '<sig(key)> <key>' }],
+    nonMalleableSats: [{ asm: '<sig(key)> <key>' }],
     malleableSats: []
   },
   //same as above
   'pkh(key)': {
     miniscript: 'pkh(key)',
     script: 'OP_DUP OP_HASH160 <HASH160(key)> OP_EQUALVERIFY OP_CHECKSIG',
-    nonMalleableSats: [{ witness: '<sig(key)> <key>' }],
+    nonMalleableSats: [{ asm: '<sig(key)> <key>' }],
     malleableSats: []
   },
 
@@ -48,7 +48,7 @@ export const primitives = {
   'and_v(v:pk(key),older(10))': {
     miniscript: 'and_v(v:pk(key),older(10))',
     script: '<key> OP_CHECKSIGVERIFY 10 OP_CHECKSEQUENCEVERIFY',
-    nonMalleableSats: [{ witness: '<sig(key)>', nSequence: 10 }],
+    nonMalleableSats: [{ asm: '<sig(key)>', nSequence: 10 }],
     malleableSats: []
   },
 
@@ -56,7 +56,7 @@ export const primitives = {
   'and_v(v:pk(key),after(10))': {
     miniscript: 'and_v(v:pk(key),after(10))',
     script: '<key> OP_CHECKSIGVERIFY 10 OP_CHECKLOCKTIMEVERIFY',
-    nonMalleableSats: [{ witness: '<sig(key)>', nLockTime: 10 }],
+    nonMalleableSats: [{ asm: '<sig(key)>', nLockTime: 10 }],
     malleableSats: []
   },
 
@@ -65,7 +65,7 @@ export const primitives = {
     miniscript: 'and_v(v:pk(k),sha256(H))',
     script:
       '<k> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_SHA256 <H> OP_EQUAL',
-    nonMalleableSats: [{ witness: '<sha256_preimage(H)> <sig(k)>' }],
+    nonMalleableSats: [{ asm: '<sha256_preimage(H)> <sig(k)>' }],
     malleableSats: []
   },
   'with unknowns - and_v(v:pk(k),sha256(H))': {
@@ -73,7 +73,7 @@ export const primitives = {
     script:
       '<k> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_SHA256 <H> OP_EQUAL',
     unknowns: ['<sha256_preimage(H)>'],
-    unknownSats: [{ witness: '<sha256_preimage(H)> <sig(k)>' }],
+    unknownSats: [{ asm: '<sha256_preimage(H)> <sig(k)>' }],
     //If the preimage is unknown we cannot compute any satisfaction
     nonMalleableSats: [],
     malleableSats: []
@@ -82,21 +82,21 @@ export const primitives = {
     miniscript: 'and_v(v:pk(k),ripemd160(H))',
     script:
       '<k> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_RIPEMD160 <H> OP_EQUAL',
-    nonMalleableSats: [{ witness: '<ripemd160_preimage(H)> <sig(k)>' }],
+    nonMalleableSats: [{ asm: '<ripemd160_preimage(H)> <sig(k)>' }],
     malleableSats: []
   },
   'and_v(v:pk(k),hash256(H))': {
     miniscript: 'and_v(v:pk(k),hash256(H))',
     script:
       '<k> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_HASH256 <H> OP_EQUAL',
-    nonMalleableSats: [{ witness: '<hash256_preimage(H)> <sig(k)>' }],
+    nonMalleableSats: [{ asm: '<hash256_preimage(H)> <sig(k)>' }],
     malleableSats: []
   },
   'and_v(v:pk(k),hash160(H))': {
     miniscript: 'and_v(v:pk(k),hash160(H))',
     script:
       '<k> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_HASH160 <H> OP_EQUAL',
-    nonMalleableSats: [{ witness: '<hash160_preimage(H)> <sig(k)>' }],
+    nonMalleableSats: [{ asm: '<hash160_preimage(H)> <sig(k)>' }],
     malleableSats: []
   },
 
@@ -110,7 +110,7 @@ export const primitives = {
   'andor(0,0,pk(k))': {
     miniscript: 'andor(0,0,pk(k))',
     script: '0 OP_NOTIF <k> OP_CHECKSIG OP_ELSE 0 OP_ENDIF',
-    nonMalleableSats: [{ witness: '<sig(k)>' }],
+    nonMalleableSats: [{ asm: '<sig(k)>' }],
     malleableSats: []
   },
   'andor(0,pk(k),0)': {
@@ -122,7 +122,7 @@ export const primitives = {
   'andor(0,pk(key1),pk(key2))': {
     miniscript: 'andor(0,pk(key1),pk(key2))',
     script: '0 OP_NOTIF <key2> OP_CHECKSIG OP_ELSE <key1> OP_CHECKSIG OP_ENDIF',
-    nonMalleableSats: [{ witness: '<sig(key2)>' }],
+    nonMalleableSats: [{ asm: '<sig(key2)>' }],
     malleableSats: []
   },
   //other andor(1,Y,Z) combinations are not valid miniscripts
@@ -149,7 +149,7 @@ export const primitives = {
   'and_v(v:pk(key1),pk(key2))': {
     miniscript: 'and_v(v:pk(key1),pk(key2))',
     script: '<key1> OP_CHECKSIGVERIFY <key2> OP_CHECKSIG',
-    nonMalleableSats: [{ witness: '<sig(key2)> <sig(key1)>' }],
+    nonMalleableSats: [{ asm: '<sig(key2)> <sig(key1)>' }],
     malleableSats: []
   },
 
@@ -163,13 +163,13 @@ export const primitives = {
   'and_b(1,s:pk(key))': {
     miniscript: 'and_b(1,s:pk(key))',
     script: '1 OP_SWAP <key> OP_CHECKSIG OP_BOOLAND',
-    nonMalleableSats: [{ witness: '<sig(key)>' }],
+    nonMalleableSats: [{ asm: '<sig(key)>' }],
     malleableSats: []
   },
   'and_b(pk(a),s:pk(b))': {
     miniscript: 'and_b(pk(a),s:pk(b))',
     script: '<a> OP_CHECKSIG OP_SWAP <b> OP_CHECKSIG OP_BOOLAND',
-    nonMalleableSats: [{ witness: '<sig(b)> <sig(a)>' }],
+    nonMalleableSats: [{ asm: '<sig(b)> <sig(a)>' }],
     malleableSats: []
   },
 
@@ -185,20 +185,20 @@ export const primitives = {
     script:
       '<key1> OP_CHECKSIGVERIFY <key2> OP_CHECKSIG OP_TOALTSTACK <key3> OP_CHECKSIG OP_FROMALTSTACK OP_BOOLOR',
     nonMalleableSats: [
-      { witness: '0 <sig(key2)> <sig(key1)>' },
-      { witness: '<sig(key3)> 0 <sig(key1)>' }
+      { asm: '0 <sig(key2)> <sig(key1)>' },
+      { asm: '<sig(key3)> 0 <sig(key1)>' }
     ],
-    malleableSats: [{ witness: '<sig(key3)> <sig(key2)> <sig(key1)>' }]
+    malleableSats: [{ asm: '<sig(key3)> <sig(key2)> <sig(key1)>' }]
   },
   'and_v(v:pk(key1),or_b(pk(key2),su:after(500000)))': {
     miniscript: 'and_v(v:pk(key1),or_b(pk(key2),su:after(500000)))',
     script:
       '<key1> OP_CHECKSIGVERIFY <key2> OP_CHECKSIG OP_SWAP OP_IF <20a107> OP_CHECKLOCKTIMEVERIFY OP_ELSE 0 OP_ENDIF OP_BOOLOR',
     nonMalleableSats: [
-      { nLockTime: 500000, witness: '1 0 <sig(key1)>' },
-      { witness: '0 <sig(key2)> <sig(key1)>' }
+      { nLockTime: 500000, asm: '1 0 <sig(key1)>' },
+      { asm: '0 <sig(key2)> <sig(key1)>' }
     ],
-    malleableSats: [{ nLockTime: 500000, witness: '1 <sig(key2)> <sig(key1)>' }]
+    malleableSats: [{ nLockTime: 500000, asm: '1 <sig(key2)> <sig(key1)>' }]
   },
 
   //or_c(X,Z)	[X] NOTIF [Z] ENDIF
@@ -217,8 +217,8 @@ export const primitives = {
     miniscript: 'c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))',
     script:
       '<key1> OP_CHECKSIG OP_NOTIF OP_SIZE <20> OP_EQUALVERIFY OP_RIPEMD160 <H> OP_EQUALVERIFY OP_ENDIF <key2> OP_CHECKSIG',
-    nonMalleableSats: [{ witness: '<sig(key2)> <ripemd160_preimage(H)> 0' }],
-    malleableSats: [{ witness: '<sig(key2)> <sig(key1)>' }]
+    nonMalleableSats: [{ asm: '<sig(key2)> <ripemd160_preimage(H)> 0' }],
+    malleableSats: [{ asm: '<sig(key2)> <sig(key1)>' }]
   },
   //Here we assume that no-one knows ripemd160_preimage.
   //The only possible solution is siginig with 2 keys. The attacker cannot
@@ -228,8 +228,8 @@ export const primitives = {
     script:
       '<key1> OP_CHECKSIG OP_NOTIF OP_SIZE <20> OP_EQUALVERIFY OP_RIPEMD160 <H> OP_EQUALVERIFY OP_ENDIF <key2> OP_CHECKSIG',
     unknowns: ['<ripemd160_preimage(H)>'],
-    unknownSats: [{ witness: '<sig(key2)> <ripemd160_preimage(H)> 0' }],
-    nonMalleableSats: [{ witness: '<sig(key2)> <sig(key1)>' }],
+    unknownSats: [{ asm: '<sig(key2)> <ripemd160_preimage(H)> 0' }],
+    nonMalleableSats: [{ asm: '<sig(key2)> <sig(key1)>' }],
     malleableSats: []
   },
 
@@ -249,8 +249,8 @@ export const primitives = {
     script:
       '<key1> OP_CHECKSIG OP_IFDUP OP_NOTIF <key2> OP_CHECKSIG OP_TOALTSTACK OP_SIZE <20> OP_EQUALVERIFY OP_SHA256 <H> OP_EQUAL OP_FROMALTSTACK OP_BOOLAND OP_ENDIF',
     nonMalleableSats: [
-      { witness: '<sig(key1)>' },
-      { witness: '<sha256_preimage(H)> <sig(key2)> 0' }
+      { asm: '<sig(key1)>' },
+      { asm: '<sha256_preimage(H)> <sig(key2)> 0' }
     ],
     malleableSats: []
   },
@@ -261,8 +261,8 @@ export const primitives = {
       '<key1> OP_CHECKSIG OP_IFDUP OP_NOTIF <key2> OP_CHECKSIG OP_TOALTSTACK OP_SIZE <20> OP_EQUALVERIFY OP_SHA256 <H> OP_EQUAL OP_FROMALTSTACK OP_BOOLAND OP_ENDIF',
     unknowns: ['<sig(key2)>'],
     //[{"script": "<sig(key1)>"}, {"script": "0 <sig(key2)> 0"}, {"nLockTime": 500000, "script": "1 0 0"}, {"nLockTime": 500000, "script": "1 <sig(key2)> 0"}]
-    unknownSats: [{ witness: '<sha256_preimage(H)> <sig(key2)> 0' }],
-    nonMalleableSats: [{ witness: '<sig(key1)>' }],
+    unknownSats: [{ asm: '<sha256_preimage(H)> <sig(key2)> 0' }],
+    nonMalleableSats: [{ asm: '<sig(key1)>' }],
     malleableSats: []
   },
   'or_d(c:pk_h(key1),andor(c:pk_k(key2),older(2016),pk(key3)))': {
@@ -270,9 +270,9 @@ export const primitives = {
     script:
       'OP_DUP OP_HASH160 <HASH160(key1)> OP_EQUALVERIFY OP_CHECKSIG OP_IFDUP OP_NOTIF <key2> OP_CHECKSIG OP_NOTIF <key3> OP_CHECKSIG OP_ELSE <e007> OP_CHECKSEQUENCEVERIFY OP_ENDIF OP_ENDIF',
     nonMalleableSats: [
-      { witness: '<sig(key1)> <key1>' },
-      { nSequence: 2016, witness: '<sig(key2)> 0 <key1>' },
-      { witness: '<sig(key3)> 0 0 <key1>' }
+      { asm: '<sig(key1)> <key1>' },
+      { nSequence: 2016, asm: '<sig(key2)> 0 <key1>' },
+      { asm: '<sig(key3)> 0 0 <key1>' }
     ],
     malleableSats: []
   },
@@ -281,10 +281,7 @@ export const primitives = {
   'c:or_i(pk_k(key1),pk_k(key2))': {
     miniscript: 'c:or_i(pk_k(key1),pk_k(key2))',
     script: 'OP_IF <key1> OP_ELSE <key2> OP_ENDIF OP_CHECKSIG',
-    nonMalleableSats: [
-      { witness: '<sig(key1)> 1' },
-      { witness: '<sig(key2)> 0' }
-    ],
+    nonMalleableSats: [{ asm: '<sig(key1)> 1' }, { asm: '<sig(key2)> 0' }],
     malleableSats: []
   },
   'c:or_i(and_v(v:after(500000),pk_k(key1)),pk_k(key2))': {
@@ -292,8 +289,8 @@ export const primitives = {
     script:
       'OP_IF <20a107> OP_CHECKLOCKTIMEVERIFY OP_VERIFY <key1> OP_ELSE <key2> OP_ENDIF OP_CHECKSIG',
     nonMalleableSats: [
-      { nLockTime: 500000, witness: '<sig(key1)> 1' },
-      { witness: '<sig(key2)> 0' }
+      { nLockTime: 500000, asm: '<sig(key1)> 1' },
+      { asm: '<sig(key2)> 0' }
     ],
     malleableSats: []
   },
@@ -304,8 +301,8 @@ export const primitives = {
     unknowns: ['<sig(key1)>'],
     //If the preimage is not konwn, then it is not malleable.
     //[{"nLockTime": 500000, "script": "<sig(key1)> 1"}, {"script": "<sha256_preimage(H)> 0"}]
-    unknownSats: [{ nLockTime: 500000, witness: '<sig(key1)> 1' }],
-    nonMalleableSats: [{ witness: '<sig(key2)> 0' }],
+    unknownSats: [{ nLockTime: 500000, asm: '<sig(key1)> 1' }],
+    nonMalleableSats: [{ asm: '<sig(key2)> 0' }],
     malleableSats: []
   },
   'c:or_i(and_v(v:older(16),pk_h(key1)),pk_h(key2))': {
@@ -313,8 +310,8 @@ export const primitives = {
     script:
       'OP_IF 16 OP_CHECKSEQUENCEVERIFY OP_VERIFY OP_DUP OP_HASH160 <HASH160(key1)> OP_EQUALVERIFY OP_ELSE OP_DUP OP_HASH160 <HASH160(key2)> OP_EQUALVERIFY OP_ENDIF OP_CHECKSIG',
     nonMalleableSats: [
-      { nSequence: 16, witness: '<sig(key1)> <key1> 1' },
-      { witness: '<sig(key2)> <key2> 0' }
+      { nSequence: 16, asm: '<sig(key1)> <key1> 1' },
+      { asm: '<sig(key2)> <key2> 0' }
     ],
     malleableSats: []
   },
@@ -324,8 +321,8 @@ export const primitives = {
       'OP_IF 16 OP_CHECKSEQUENCEVERIFY OP_VERIFY OP_DUP OP_HASH160 <HASH160(key1)> OP_EQUALVERIFY OP_ELSE OP_DUP OP_HASH160 <HASH160(key2)> OP_EQUALVERIFY OP_ENDIF OP_CHECKSIG',
     unknowns: ['<sig(key1)>', '<sig(key2)>'],
     unknownSats: [
-      { nSequence: 16, witness: '<sig(key1)> <key1> 1' },
-      { witness: '<sig(key2)> <key2> 0' }
+      { nSequence: 16, asm: '<sig(key1)> <key1> 1' },
+      { asm: '<sig(key2)> <key2> 0' }
     ],
     nonMalleableSats: [],
     malleableSats: []
@@ -335,9 +332,9 @@ export const primitives = {
     script:
       'OP_IF OP_DUP OP_HASH160 <HASH160(key1)> OP_EQUALVERIFY OP_CHECKSIG OP_NOTIF OP_DUP OP_HASH160 <HASH160(key3)> OP_EQUALVERIFY OP_ELSE OP_DUP OP_HASH160 <HASH160(key2)> OP_EQUALVERIFY OP_ENDIF OP_ELSE <key4> OP_ENDIF OP_CHECKSIG',
     nonMalleableSats: [
-      { witness: '<sig(key2)> <key2> <sig(key1)> <key1> 1' },
-      { witness: '<sig(key3)> <key3> 0 <key1> 1' },
-      { witness: '<sig(key4)> 0' }
+      { asm: '<sig(key2)> <key2> <sig(key1)> <key1> 1' },
+      { asm: '<sig(key3)> <key3> 0 <key1> 1' },
+      { asm: '<sig(key4)> 0' }
     ],
     malleableSats: []
   },
@@ -346,8 +343,8 @@ export const primitives = {
     script:
       'OP_IF <key1> OP_CHECKSIG OP_SWAP <key2> OP_CHECKSIG OP_BOOLAND OP_ELSE 1 OP_CHECKSEQUENCEVERIFY OP_SWAP <key3> OP_CHECKSIG OP_BOOLAND OP_ENDIF',
     nonMalleableSats: [
-      { witness: '<sig(key2)> <sig(key1)> 1' },
-      { nSequence: 1, witness: '<sig(key3)> 0' }
+      { asm: '<sig(key2)> <sig(key1)> 1' },
+      { nSequence: 1, asm: '<sig(key3)> 0' }
     ],
     malleableSats: []
   },
@@ -357,8 +354,8 @@ export const primitives = {
       script:
         'OP_IF <key1> OP_CHECKSIG OP_SWAP <key2> OP_CHECKSIG OP_BOOLAND OP_ELSE 1 OP_CHECKSEQUENCEVERIFY OP_SWAP <key3> OP_CHECKSIG OP_BOOLAND OP_ENDIF',
       unknowns: ['<sig(key3)>'],
-      unknownSats: [{ nSequence: 1, witness: '<sig(key3)> 0' }],
-      nonMalleableSats: [{ witness: '<sig(key2)> <sig(key1)> 1' }],
+      unknownSats: [{ nSequence: 1, asm: '<sig(key3)> 0' }],
+      nonMalleableSats: [{ asm: '<sig(key2)> <sig(key1)> 1' }],
       malleableSats: []
     },
 
@@ -367,22 +364,16 @@ export const primitives = {
     miniscript: 'thresh(2,pk(A),s:pk(B),sln:1)',
     script:
       '<A> OP_CHECKSIG OP_SWAP <B> OP_CHECKSIG OP_ADD OP_SWAP OP_IF 0 OP_ELSE 1 OP_0NOTEQUAL OP_ENDIF OP_ADD 2 OP_EQUAL',
-    nonMalleableSats: [
-      { witness: '0 0 <sig(A)>' },
-      { witness: '0 <sig(B)> 0' }
-    ],
-    malleableSats: [{ witness: '1 <sig(B)> <sig(A)>' }]
+    nonMalleableSats: [{ asm: '0 0 <sig(A)>' }, { asm: '0 <sig(B)> 0' }],
+    malleableSats: [{ asm: '1 <sig(B)> <sig(A)>' }]
   },
   'with unknownws - thresh(2,pk(A),s:pk(B),sln:1)': {
     miniscript: 'thresh(2,pk(A),s:pk(B),sln:1)',
     script:
       '<A> OP_CHECKSIG OP_SWAP <B> OP_CHECKSIG OP_ADD OP_SWAP OP_IF 0 OP_ELSE 1 OP_0NOTEQUAL OP_ENDIF OP_ADD 2 OP_EQUAL',
     unknowns: ['<sig(A)>'],
-    unknownSats: [
-      { witness: '0 0 <sig(A)>' },
-      { witness: '1 <sig(B)> <sig(A)>' }
-    ],
-    nonMalleableSats: [{ witness: '0 <sig(B)> 0' }],
+    unknownSats: [{ asm: '0 0 <sig(A)>' }, { asm: '1 <sig(B)> <sig(A)>' }],
+    nonMalleableSats: [{ asm: '0 <sig(B)> 0' }],
     malleableSats: []
   },
   'with unknowns set - thresh(2,pk(k1),s:pk(k2),sjtv:sha256(H))': {
@@ -391,10 +382,10 @@ export const primitives = {
       '<k1> OP_CHECKSIG OP_SWAP <k2> OP_CHECKSIG OP_ADD OP_SWAP OP_SIZE OP_0NOTEQUAL OP_IF OP_SIZE <20> OP_EQUALVERIFY OP_SHA256 <H> OP_EQUALVERIFY 1 OP_ENDIF OP_ADD 2 OP_EQUAL',
     unknowns: ['<sha256_preimage(H)>'],
     unknownSats: [
-      { witness: '<sha256_preimage(H)> 0 <sig(k1)>' },
-      { witness: '<sha256_preimage(H)> <sig(k2)> 0' }
+      { asm: '<sha256_preimage(H)> 0 <sig(k1)>' },
+      { asm: '<sha256_preimage(H)> <sig(k2)> 0' }
     ],
-    nonMalleableSats: [{ witness: '0 <sig(k2)> <sig(k1)>' }],
+    nonMalleableSats: [{ asm: '0 <sig(k2)> <sig(k1)>' }],
     malleableSats: []
   },
   'or(thresh(2,pk(k1),pk(k2),sha256(H)),pk(k3))': {
@@ -408,9 +399,9 @@ export const primitives = {
       '2 <key1> <key2> 2 OP_CHECKMULTISIG OP_TOALTSTACK 1 <key3> 1 OP_CHECKMULTISIG OP_FROMALTSTACK OP_ADD OP_TOALTSTACK <key4> OP_CHECKSIG OP_FROMALTSTACK OP_ADD 2 OP_EQUAL',
     //I manually checked them:
     nonMalleableSats: [
-      { witness: '0 0 <sig(key3)> 0 <sig(key1)> <sig(key2)>' },
-      { witness: '<sig(key4)> 0 0 0 <sig(key1)> <sig(key2)>' },
-      { witness: '<sig(key4)> 0 <sig(key3)> 0 0 0' }
+      { asm: '0 0 <sig(key3)> 0 <sig(key1)> <sig(key2)>' },
+      { asm: '<sig(key4)> 0 0 0 <sig(key1)> <sig(key2)>' },
+      { asm: '<sig(key4)> 0 <sig(key3)> 0 0 0' }
     ],
     malleableSats: []
   },
@@ -442,7 +433,7 @@ export const primitives = {
     script:
       '<key1> OP_CHECKSIG OP_TOALTSTACK OP_IF 0 OP_ELSE <c800> OP_CHECKLOCKTIMEVERIFY OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD OP_TOALTSTACK OP_IF 0 OP_ELSE <64> OP_CHECKLOCKTIMEVERIFY OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD 2 OP_EQUAL',
     //[{"nLockTime": 200, "script": "1 0 <sig(key1)>"}, {"nLockTime": 100, "script": "0 1 <sig(key1)>"}, {"nLockTime": 200, "script": "0 0 0"}]
-    nonMalleableSats: [{ nLockTime: 200, witness: '0 0 0' }], //Don't reveal the signature
+    nonMalleableSats: [{ nLockTime: 200, asm: '0 0 0' }], //Don't reveal the signature
     //because it would be malleable
     malleableSats: []
   },
@@ -470,9 +461,9 @@ export const primitives = {
     script:
       '<key1> OP_CHECKSIG OP_TOALTSTACK <key2> OP_CHECKSIG OP_FROMALTSTACK OP_ADD OP_TOALTSTACK OP_IF 0 OP_ELSE <64> OP_CHECKLOCKTIMEVERIFY OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD 2 OP_EQUAL',
     nonMalleableSats: [
-      { witness: '1 <sig(key2)> <sig(key1)>' },
-      { nLockTime: 100, witness: '0 0 <sig(key1)>' },
-      { nLockTime: 100, witness: '0 <sig(key2)> 0' }
+      { asm: '1 <sig(key2)> <sig(key1)>' },
+      { nLockTime: 100, asm: '0 0 <sig(key1)>' },
+      { nLockTime: 100, asm: '0 <sig(key2)> 0' }
     ],
     malleableSats: []
   },
@@ -482,14 +473,14 @@ export const primitives = {
     script:
       '<key1> OP_CHECKSIG OP_TOALTSTACK <key2> OP_CHECKSIG OP_FROMALTSTACK OP_ADD OP_TOALTSTACK OP_IF 0 OP_ELSE <64> OP_CHECKLOCKTIMEVERIFY OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD OP_TOALTSTACK OP_IF 0 OP_ELSE <c800> OP_CHECKLOCKTIMEVERIFY OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD 3 OP_EQUAL',
     nonMalleableSats: [
-      { nLockTime: 100, witness: '1 0 <sig(key2)> <sig(key1)>' },
+      { nLockTime: 100, asm: '1 0 <sig(key2)> <sig(key1)>' },
       //This one below should not be used because it could used to create the
       //2 other solutions below by an attacker
       //{"nLockTime": 200, "script": "0 1 <sig(key2)> <sig(key1)>"},
-      { nLockTime: 200, witness: '0 0 0 <sig(key1)>' },
-      { nLockTime: 200, witness: '0 0 <sig(key2)> 0' }
+      { nLockTime: 200, asm: '0 0 0 <sig(key1)>' },
+      { nLockTime: 200, asm: '0 0 <sig(key2)> 0' }
     ],
-    malleableSats: [{ nLockTime: 200, witness: '0 1 <sig(key2)> <sig(key1)>' }]
+    malleableSats: [{ nLockTime: 200, asm: '0 1 <sig(key2)> <sig(key1)>' }]
   },
   'thresh(3,j:and_v(v:ripemd160(H),and_v(v:ripemd160(H),n:older(110))),s:pk(A),s:pk(B),aj:and_v(v:sha256(H),and_v(v:sha256(H),n:older(100))))':
     {
@@ -500,25 +491,21 @@ export const primitives = {
       nonMalleableSats: [
         {
           nSequence: 110,
-          witness:
-            '<sha256_preimage(H)> <sha256_preimage(H)> 0 <sig(A)> <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
+          asm: '<sha256_preimage(H)> <sha256_preimage(H)> 0 <sig(A)> <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
         },
         {
           nSequence: 110,
-          witness:
-            '<sha256_preimage(H)> <sha256_preimage(H)> <sig(B)> 0 <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
+          asm: '<sha256_preimage(H)> <sha256_preimage(H)> <sig(B)> 0 <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
         },
         {
           nSequence: 100,
-          witness:
-            '<sha256_preimage(H)> <sha256_preimage(H)> <sig(B)> <sig(A)> 0'
+          asm: '<sha256_preimage(H)> <sha256_preimage(H)> <sig(B)> <sig(A)> 0'
         }
       ],
       malleableSats: [
         {
           nSequence: 110,
-          witness:
-            '0 <sig(B)> <sig(A)> <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
+          asm: '0 <sig(B)> <sig(A)> <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
         }
       ]
     },
@@ -532,25 +519,21 @@ export const primitives = {
       unknownSats: [
         {
           nSequence: 110,
-          witness:
-            '<sha256_preimage(H)> <sha256_preimage(H)> 0 <sig(A)> <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
+          asm: '<sha256_preimage(H)> <sha256_preimage(H)> 0 <sig(A)> <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
         },
         {
           nSequence: 110,
-          witness:
-            '<sha256_preimage(H)> <sha256_preimage(H)> <sig(B)> 0 <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
+          asm: '<sha256_preimage(H)> <sha256_preimage(H)> <sig(B)> 0 <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
         },
         {
           nSequence: 100,
-          witness:
-            '<sha256_preimage(H)> <sha256_preimage(H)> <sig(B)> <sig(A)> 0'
+          asm: '<sha256_preimage(H)> <sha256_preimage(H)> <sig(B)> <sig(A)> 0'
         }
       ],
       nonMalleableSats: [
         {
           nSequence: 110,
-          witness:
-            '0 <sig(B)> <sig(A)> <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
+          asm: '0 <sig(B)> <sig(A)> <ripemd160_preimage(H)> <ripemd160_preimage(H)>'
         }
       ],
       malleableSats: []
@@ -560,12 +543,12 @@ export const primitives = {
     script:
       '<key1> OP_CHECKSIG OP_TOALTSTACK <key2> OP_CHECKSIG OP_FROMALTSTACK OP_ADD OP_TOALTSTACK OP_IF 0 OP_ELSE 1 OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD OP_TOALTSTACK OP_IF 0 OP_ELSE 1 OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD 3 OP_EQUAL',
     nonMalleableSats: [
-      { witness: '0 0 0 <sig(key1)>' },
-      { witness: '0 0 <sig(key2)> 0' }
+      { asm: '0 0 0 <sig(key1)>' },
+      { asm: '0 0 <sig(key2)> 0' }
     ],
     malleableSats: [
-      { witness: '1 0 <sig(key2)> <sig(key1)>' },
-      { witness: '0 1 <sig(key2)> <sig(key1)>' }
+      { asm: '1 0 <sig(key2)> <sig(key1)>' },
+      { asm: '0 1 <sig(key2)> <sig(key1)>' }
     ]
   },
   //multi(k,key1,...,keyn)	-> <k> <key1> ... <keyn> <n> CHECKMULTISIG
@@ -573,10 +556,10 @@ export const primitives = {
     miniscript: 'multi(3,key1,key2,key3,key4)',
     script: '3 <key1> <key2> <key3> <key4> 4 OP_CHECKMULTISIG',
     nonMalleableSats: [
-      { witness: '0 <sig(key1)> <sig(key2)> <sig(key3)>' },
-      { witness: '0 <sig(key1)> <sig(key2)> <sig(key4)>' },
-      { witness: '0 <sig(key1)> <sig(key3)> <sig(key4)>' },
-      { witness: '0 <sig(key2)> <sig(key3)> <sig(key4)>' }
+      { asm: '0 <sig(key1)> <sig(key2)> <sig(key3)>' },
+      { asm: '0 <sig(key1)> <sig(key2)> <sig(key4)>' },
+      { asm: '0 <sig(key1)> <sig(key3)> <sig(key4)>' },
+      { asm: '0 <sig(key2)> <sig(key3)> <sig(key4)>' }
     ],
     malleableSats: []
   },
@@ -584,22 +567,19 @@ export const primitives = {
     miniscript: 'multi(2,key1,key2,key3,key4)',
     script: '2 <key1> <key2> <key3> <key4> 4 OP_CHECKMULTISIG',
     nonMalleableSats: [
-      { witness: '0 <sig(key1)> <sig(key2)>' },
-      { witness: '0 <sig(key1)> <sig(key3)>' },
-      { witness: '0 <sig(key1)> <sig(key4)>' },
-      { witness: '0 <sig(key2)> <sig(key3)>' },
-      { witness: '0 <sig(key2)> <sig(key4)>' },
-      { witness: '0 <sig(key3)> <sig(key4)>' }
+      { asm: '0 <sig(key1)> <sig(key2)>' },
+      { asm: '0 <sig(key1)> <sig(key3)>' },
+      { asm: '0 <sig(key1)> <sig(key4)>' },
+      { asm: '0 <sig(key2)> <sig(key3)>' },
+      { asm: '0 <sig(key2)> <sig(key4)>' },
+      { asm: '0 <sig(key3)> <sig(key4)>' }
     ],
     malleableSats: []
   },
   'multi(1,key1,key2)': {
     miniscript: 'multi(1,key1,key2)',
     script: '1 <key1> <key2> 2 OP_CHECKMULTISIG',
-    nonMalleableSats: [
-      { witness: '0 <sig(key1)>' },
-      { witness: '0 <sig(key2)>' }
-    ],
+    nonMalleableSats: [{ asm: '0 <sig(key1)>' }, { asm: '0 <sig(key2)>' }],
     malleableSats: []
   },
   'multi(0,key1,key2,key3,key4)': {
@@ -617,7 +597,7 @@ export const primitives = {
     miniscript: 'and_v(v:pk(key),or_d(nd:and_v(v:after(10),v:after(20)),0))',
     script:
       '<key> OP_CHECKSIGVERIFY OP_DUP OP_IF 10 OP_CHECKLOCKTIMEVERIFY OP_VERIFY <14> OP_CHECKLOCKTIMEVERIFY OP_VERIFY OP_ENDIF OP_0NOTEQUAL OP_IFDUP OP_NOTIF 0 OP_ENDIF',
-    nonMalleableSats: [{ nLockTime: 20, witness: '1 <sig(key)>' }],
+    nonMalleableSats: [{ nLockTime: 20, asm: '1 <sig(key)>' }],
     malleableSats: []
   }
 
@@ -632,7 +612,7 @@ export const timeLocks = {
     miniscript: 'and_v(v:pk(key),and_v(v:older(10),older(20)))',
     script:
       '<key> OP_CHECKSIGVERIFY 10 OP_CHECKSEQUENCEVERIFY OP_VERIFY <14> OP_CHECKSEQUENCEVERIFY',
-    nonMalleableSats: [{ witness: '<sig(key)>', nSequence: 20 }],
+    nonMalleableSats: [{ asm: '<sig(key)>', nSequence: 20 }],
     malleableSats: []
   },
   '(Sign with key1 and older than 10 blocks) or (sign with key2 and older than 20 blocks)':
@@ -642,8 +622,8 @@ export const timeLocks = {
       script:
         '<key1> OP_CHECKSIG OP_NOTIF <key2> OP_CHECKSIGVERIFY <14> OP_CHECKSEQUENCEVERIFY OP_ELSE 10 OP_CHECKSEQUENCEVERIFY OP_ENDIF',
       nonMalleableSats: [
-        { nSequence: 10, witness: '<sig(key1)>' },
-        { nSequence: 20, witness: '<sig(key2)> 0' }
+        { nSequence: 10, asm: '<sig(key1)>' },
+        { nSequence: 20, asm: '<sig(key2)> 0' }
       ],
       malleableSats: []
     },
@@ -654,8 +634,8 @@ export const timeLocks = {
       script:
         '<key1> OP_CHECKSIG OP_NOTIF <key2> OP_CHECKSIGVERIFY <14> OP_CHECKLOCKTIMEVERIFY OP_ELSE 10 OP_CHECKLOCKTIMEVERIFY OP_ENDIF',
       nonMalleableSats: [
-        { witness: '<sig(key1)>', nLockTime: 10 },
-        { witness: '<sig(key2)> 0', nLockTime: 20 }
+        { asm: '<sig(key1)>', nLockTime: 10 },
+        { asm: '<sig(key2)> 0', nLockTime: 20 }
       ],
       malleableSats: []
     },
@@ -688,12 +668,12 @@ export const timeLocks = {
         '<key1> OP_CHECKSIG OP_NOTIF <key2> OP_CHECKSIGVERIFY 10 OP_CHECKSEQUENCEVERIFY OP_ELSE <010040> OP_CHECKSEQUENCEVERIFY OP_ENDIF',
       nonMalleableSats: [
         {
-          witness: '<sig(key1)>',
+          asm: '<sig(key1)>',
           nSequence: bip68.encode({
             seconds: 1 * 512
           })
         },
-        { witness: '<sig(key2)> 0', nSequence: bip68.encode({ blocks: 10 }) }
+        { asm: '<sig(key2)> 0', nSequence: bip68.encode({ blocks: 10 }) }
       ],
       malleableSats: []
     },
@@ -702,7 +682,7 @@ export const timeLocks = {
     miniscript: 'and_v(and_v(v:pk(a),v:after(10)),and_v(v:pk(b),after(11)))',
     script:
       '<a> OP_CHECKSIGVERIFY 10 OP_CHECKLOCKTIMEVERIFY OP_VERIFY <b> OP_CHECKSIGVERIFY 11 OP_CHECKLOCKTIMEVERIFY',
-    nonMalleableSats: [{ witness: '<sig(b)> <sig(a)>', nLockTime: 11 }],
+    nonMalleableSats: [{ asm: '<sig(b)> <sig(a)>', nLockTime: 11 }],
     malleableSats: []
   },
 
@@ -713,8 +693,8 @@ export const timeLocks = {
     script:
       '<c> OP_CHECKSIG OP_NOTIF <a> OP_CHECKSIGVERIFY 10 OP_CHECKLOCKTIMEVERIFY OP_VERIFY 11 OP_CHECKLOCKTIMEVERIFY OP_ELSE 13 OP_CHECKLOCKTIMEVERIFY OP_ENDIF',
     nonMalleableSats: [
-      { witness: '<sig(c)>', nLockTime: 13 },
-      { witness: '<sig(a)> 0', nLockTime: 11 }
+      { asm: '<sig(c)>', nLockTime: 13 },
+      { asm: '<sig(a)> 0', nLockTime: 11 }
     ],
     malleableSats: []
   },
@@ -724,8 +704,8 @@ export const timeLocks = {
     script:
       '<b> OP_CHECKSIG OP_NOTIF <a> OP_CHECKSIG OP_ELSE <64> OP_CHECKLOCKTIMEVERIFY OP_ENDIF',
     nonMalleableSats: [
-      { witness: '<sig(b)>', nLockTime: 100 },
-      { witness: '<sig(a)> 0' }
+      { asm: '<sig(b)>', nLockTime: 100 },
+      { asm: '<sig(a)> 0' }
     ],
     malleableSats: []
   }
@@ -733,7 +713,7 @@ export const timeLocks = {
 export const other = {
   'and_v(v:pk(key_remote),hash160(H))': {
     miniscript: 'and_v(v:pk(key_remote),hash160(H))',
-    nonMalleableSats: [{ witness: '<hash160_preimage(H)> <sig(key_remote)>' }],
+    nonMalleableSats: [{ asm: '<hash160_preimage(H)> <sig(key_remote)>' }],
     script:
       '<key_remote> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_HASH160 <H> OP_EQUAL',
     malleableSats: []
@@ -750,8 +730,8 @@ export const other = {
     script:
       '<key_user> OP_CHECKSIGVERIFY <key_service> OP_CHECKSIG OP_IFDUP OP_NOTIF <a032> OP_CHECKSEQUENCEVERIFY OP_ENDIF',
     nonMalleableSats: [
-      { nSequence: 12960, witness: '0 <sig(key_user)>' },
-      { witness: '<sig(key_service)> <sig(key_user)>' }
+      { nSequence: 12960, asm: '0 <sig(key_user)>' },
+      { asm: '<sig(key_service)> <sig(key_user)>' }
     ],
     malleableSats: []
   },
@@ -760,8 +740,8 @@ export const other = {
     script:
       '<matured> OP_CHECKSIG OP_NOTIF <rushed> OP_CHECKSIG OP_ELSE <c021> OP_CHECKSEQUENCEVERIFY OP_ENDIF',
     nonMalleableSats: [
-      { nSequence: 8640, witness: '<sig(matured)>' },
-      { witness: '<sig(rushed)> 0' }
+      { nSequence: 8640, asm: '<sig(matured)>' },
+      { asm: '<sig(rushed)> 0' }
     ],
     malleableSats: []
   },
@@ -770,8 +750,8 @@ export const other = {
     script:
       '<matured> OP_CHECKSIG OP_NOTIF <rushed> OP_CHECKSIG OP_ELSE <c021> OP_CHECKSEQUENCEVERIFY OP_ENDIF',
     unknowns: ['<sig(matured)>'],
-    unknownSats: [{ nSequence: 8640, witness: '<sig(matured)>' }],
-    nonMalleableSats: [{ witness: '<sig(rushed)> 0' }],
+    unknownSats: [{ nSequence: 8640, asm: '<sig(matured)>' }],
+    nonMalleableSats: [{ asm: '<sig(rushed)> 0' }],
     malleableSats: []
   },
   'with unknown rushed - andor(pk(matured),older(8640),pk(rushed))': {
@@ -779,8 +759,8 @@ export const other = {
     script:
       '<matured> OP_CHECKSIG OP_NOTIF <rushed> OP_CHECKSIG OP_ELSE <c021> OP_CHECKSEQUENCEVERIFY OP_ENDIF',
     unknowns: ['<sig(rushed)>'],
-    unknownSats: [{ witness: '<sig(rushed)> 0' }],
-    nonMalleableSats: [{ nSequence: 8640, witness: '<sig(matured)>' }],
+    unknownSats: [{ asm: '<sig(rushed)> 0' }],
+    nonMalleableSats: [{ nSequence: 8640, asm: '<sig(matured)>' }],
     malleableSats: []
   },
   'thresh(3,pk(key_1),s:pk(key_2),s:pk(key_3),sln:older(12960))': {
@@ -788,10 +768,10 @@ export const other = {
     script:
       '<key_1> OP_CHECKSIG OP_SWAP <key_2> OP_CHECKSIG OP_ADD OP_SWAP <key_3> OP_CHECKSIG OP_ADD OP_SWAP OP_IF 0 OP_ELSE <a032> OP_CHECKSEQUENCEVERIFY OP_0NOTEQUAL OP_ENDIF OP_ADD 3 OP_EQUAL',
     nonMalleableSats: [
-      { nSequence: 12960, witness: '0 0 <sig(key_2)> <sig(key_1)>' },
-      { nSequence: 12960, witness: '0 <sig(key_3)> 0 <sig(key_1)>' },
-      { nSequence: 12960, witness: '0 <sig(key_3)> <sig(key_2)> 0' },
-      { witness: '1 <sig(key_3)> <sig(key_2)> <sig(key_1)>' }
+      { nSequence: 12960, asm: '0 0 <sig(key_2)> <sig(key_1)>' },
+      { nSequence: 12960, asm: '0 <sig(key_3)> 0 <sig(key_1)>' },
+      { nSequence: 12960, asm: '0 <sig(key_3)> <sig(key_2)> 0' },
+      { asm: '1 <sig(key_3)> <sig(key_2)> <sig(key_1)>' }
     ],
     malleableSats: []
   },
@@ -800,8 +780,8 @@ export const other = {
     script:
       '<key_local> OP_CHECKSIG OP_NOTIF <key_revocation> OP_CHECKSIG OP_ELSE <f003> OP_CHECKSEQUENCEVERIFY OP_ENDIF',
     nonMalleableSats: [
-      { nSequence: 1008, witness: '<sig(key_local)>' },
-      { witness: '<sig(key_revocation)> 0' }
+      { nSequence: 1008, asm: '<sig(key_local)>' },
+      { asm: '<sig(key_revocation)> 0' }
     ],
     malleableSats: []
   },
@@ -812,10 +792,10 @@ export const other = {
       script:
         '<key_revocation> OP_CHECKSIG OP_NOTIF <key_remote> OP_CHECKSIGVERIFY <key_local> OP_CHECKSIG OP_NOTIF OP_SIZE <20> OP_EQUALVERIFY OP_HASH160 <H> OP_EQUALVERIFY OP_ENDIF OP_ENDIF 1',
       nonMalleableSats: [
-        { witness: '<sig(key_revocation)>' },
-        { witness: '<hash160_preimage(H)> 0 <sig(key_remote)> 0' }
+        { asm: '<sig(key_revocation)>' },
+        { asm: '<hash160_preimage(H)> 0 <sig(key_remote)> 0' }
       ],
-      malleableSats: [{ witness: '<sig(key_local)> <sig(key_remote)> 0' }]
+      malleableSats: [{ asm: '<sig(key_local)> <sig(key_remote)> 0' }]
     },
   'with unknown preimage - t:or_c(pk(key_revocation),and_v(v:pk(key_remote),or_c(pk(key_local),v:hash160(H))))':
     {
@@ -824,10 +804,10 @@ export const other = {
       script:
         '<key_revocation> OP_CHECKSIG OP_NOTIF <key_remote> OP_CHECKSIGVERIFY <key_local> OP_CHECKSIG OP_NOTIF OP_SIZE <20> OP_EQUALVERIFY OP_HASH160 <H> OP_EQUALVERIFY OP_ENDIF OP_ENDIF 1',
       unknowns: ['<hash160_preimage(H)>'],
-      unknownSats: [{ witness: '<hash160_preimage(H)> 0 <sig(key_remote)> 0' }],
+      unknownSats: [{ asm: '<hash160_preimage(H)> 0 <sig(key_remote)> 0' }],
       nonMalleableSats: [
-        { witness: '<sig(key_local)> <sig(key_remote)> 0' },
-        { witness: '<sig(key_revocation)>' }
+        { asm: '<sig(key_local)> <sig(key_remote)> 0' },
+        { asm: '<sig(key_revocation)>' }
       ],
       malleableSats: []
     },
@@ -838,11 +818,10 @@ export const other = {
       script:
         '<key_remote> OP_CHECKSIG OP_NOTIF <key_revocation> OP_CHECKSIG OP_ELSE OP_IF OP_DUP OP_HASH160 <HASH160(key_local)> OP_EQUALVERIFY OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_HASH160 <H> OP_EQUAL OP_ELSE <f003> OP_CHECKSEQUENCEVERIFY OP_ENDIF OP_ENDIF',
       nonMalleableSats: [
-        { nSequence: 1008, witness: '0 <sig(key_remote)>' },
-        { witness: '<sig(key_revocation)> 0' },
+        { nSequence: 1008, asm: '0 <sig(key_remote)>' },
+        { asm: '<sig(key_revocation)> 0' },
         {
-          witness:
-            '<hash160_preimage(H)> <sig(key_local)> <key_local> 1 <sig(key_remote)>'
+          asm: '<hash160_preimage(H)> <sig(key_local)> <key_local> 1 <sig(key_remote)>'
         }
       ],
       malleableSats: []
