@@ -825,5 +825,16 @@ export const other = {
         }
       ],
       malleableSats: []
-    }
+    },
+  'thresh(1,pkh(@0),a:and_n(multi(1,@1,@2),n:older(2)))': {
+    miniscript: 'thresh(1,pkh(@0),a:and_n(multi(1,@1,@2),n:older(2)))',
+    script:
+      'OP_DUP OP_HASH160 <HASH160(@0)> OP_EQUALVERIFY OP_CHECKSIG OP_TOALTSTACK 1 <@1> <@2> 2 OP_CHECKMULTISIG OP_NOTIF 0 OP_ELSE 2 OP_CHECKSEQUENCEVERIFY OP_0NOTEQUAL OP_ENDIF OP_FROMALTSTACK OP_ADD 1 OP_EQUAL',
+    nonMalleableSats: [
+      { asm: '0 0 <sig(@0)> <@0>' },
+      { asm: '0 <sig(@1)> 0 <@0>', nSequence: 2 },
+      { asm: '0 <sig(@2)> 0 <@0>', nSequence: 2 }
+    ],
+    malleableSats: []
+  }
 };

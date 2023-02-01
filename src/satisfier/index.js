@@ -201,7 +201,7 @@ const evaluate = miniscript => {
     .replace(/^pk\(/, 'c:pk_k(')
     .replace(/^pkh\(/, 'c:pk_h(')
     .replace(/^and_n\(.*\)/, match =>
-      match.replace('and_n', 'andor').replace(')', ',0)')
+      match.replace('and_n', 'andor').replace(/\)$/, ',0)')
     )
     .replace(/^t:(.*)/, match => match.replace('t:', 'and_v(') + ',1)')
     .replace(/^l:(.*)/, match => match.replace('l:', 'or_i(0,') + ')')
