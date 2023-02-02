@@ -13,7 +13,7 @@ export declare const compilePolicy: (miniscript: string) => {
 
 export declare const satisfier: (
   miniscript: string,
-  options:
+  options?:
     | {
         unknowns?: string[] | undefined;
         knowns?: string[] | undefined;
