@@ -292,6 +292,13 @@ const evaluate = miniscript => {
  * solutions. If the miniscript is sane, then unknowns can be set to produce
  * more possible solutions, including preimages, as described above.
  *
+ * @param {string[]} knowns - An array with the only pieces of information
+ * that can be used to build satisfactions. This is the complimentary to
+ * unknowns. Only `knowns` or `unknowns` must be passed.
+ *
+ * If neither knowns and unknowns is passed then it is assumed that there are
+ * no unknowns, in other words, that all pieces of information are known.
+ *
  * @returns {Object} an object with three keys:
  *   - `nonMalleableSats`: an array of {@link module:satisfier.Solution} objects
  *   representing the non-malleable sat() expressions.
@@ -301,11 +308,22 @@ const evaluate = miniscript => {
  *   representing the sat() expressions that contain some of the `unknown` pieces of information.
  * @see {@link module:satisfier.Solution}
  */
-export const satisfier = (miniscript, unknowns = []) => {
+export const satisfier = (miniscript, { unknowns, knowns } = {}) => {
   const { issane, issanesublevel } = compileMiniscript(miniscript);
 
   if (!issane) {
     throw new Error(`Miniscript ${miniscript} is not sane.`);
+  }
+
+  if (typeof unknowns === 'undefined' && typeof knowns === 'undefined') {
+    unknowns = [];
+  } else if (typeof unknowns !== 'undefined' && typeof knowns !== 'undefined') {
+    throw new Error(`Cannot pass both knowns and unknowns`);
+  } else if (
+    (knowns && !Array.isArray(knowns)) ||
+    (unknowns && !Array.isArray(unknowns))
+  ) {
+    throw new Error(`Incorrect types for unknowns / knowns`);
   }
 
   const knownSats = [];
@@ -316,10 +334,29 @@ export const satisfier = (miniscript, unknowns = []) => {
     if (typeof sat.nLockTime === 'undefined') delete sat.nLockTime;
     //Clean format: 1 consecutive spaces at most, no leading & trailing spaces
     sat.asm = sat.asm.replace(/  +/g, ' ').trim();
-    if (unknowns.some(unknown => sat.asm.includes(unknown))) {
-      unknownSats.push(sat);
+
+    if (unknowns) {
+      if (unknowns.some(unknown => sat.asm.includes(unknown))) {
+        unknownSats.push(sat);
+      } else {
+        knownSats.push(sat);
+      }
     } else {
-      knownSats.push(sat);
+      const delKnowns = knowns.reduce(
+        (acc, known) => acc.replace(known, ''),
+        sat.asm
+      );
+      if (
+        delKnowns.match(
+          /<sig\(|<sha256_preimage\(|<hash256_preimage\(|<ripemd160_preimage\(|<hash160_preimage\(/
+        )
+      ) {
+        //Even thought all known pieces of information are removed, there are
+        //still other pieces of info needed. Thus, this sat is unkown.
+        unknownSats.push(sat);
+      } else {
+        knownSats.push(sat);
+      }
     }
   });
 

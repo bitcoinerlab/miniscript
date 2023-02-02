@@ -12,7 +12,7 @@ It includes a novel Miniscript Satisfier for generating explicit script witnesse
 
   For example, Miniscript `and_v(v:pk(key),after(10))` can be satisfied with `[{ asm: '<sig(key)>', nLockTime: 10 }]`.
 
-- The ability to generate different satisfactions depending on the presence of `unknowns`.
+- The ability to generate different satisfactions depending on the presence of `unknowns` (or complimentary `knowns`).
 
   For example, Miniscript `c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))` can be satisfied with: `[{ asm: '<sig(key2)> <ripemd160_preimage(H)> 0' }]`.
 
@@ -99,7 +99,7 @@ const unknowns = ['<sig(key1)>', '<sig(key2)>'];
 
 const { nonMalleableSats, malleableSats, unknownSats } = satisfier(
   miniscript,
-  unknowns
+  { unknowns }
 );
 ```
 
@@ -112,6 +112,8 @@ nonMalleableSats: [
 ]
 unknownSats: [ {asm: "<sig(key2)> <key2> <sig(key1)> <key1> 1"} ]
 ```
+
+Instead of `unknowns`, the user has the option to provide the complementary argument `knowns`: `satisfier( miniscript, { knowns })`. This argument corresponds to the only pieces of information that are known. For instance, in the example above, `knowns` would be `['<sig(key3)>', '<sig(key4)>']`. It's important to note that either `knowns` or `unknowns` must be provided, but not both. If neither argument is provided, it's assumed that all signatures and preimages are known.
 
 The objects returned in the `nonMalleableSats`, `malleableSats` and `unknownSats` arrays consist of the following properties:
 

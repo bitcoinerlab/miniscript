@@ -1,18 +1,22 @@
-import { primitives, timeLocks, other } from './fixtures.js';
+import { primitives, timeLocks, other, knowns } from './fixtures.js';
 import { satisfier } from '../src/satisfier/index.js';
 
 const createGroupTest = (description, fixtures) =>
   describe(description, () => {
     for (const [testName, fixture] of Object.entries(fixtures)) {
+      const options =
+        fixture.unknowns || fixture.knowns
+          ? { unknowns: fixture.unknowns, knowns: fixture.knowns }
+          : undefined;
       if (fixture.throws) {
         test(testName, () => {
-          expect(() => satisfier(fixture.miniscript, fixture.unknowns)).toThrow(
+          expect(() => satisfier(fixture.miniscript, options)).toThrow(
             fixture.throws
           );
         });
       } else {
         test(testName, () => {
-          const result = satisfier(fixture.miniscript, fixture.unknowns);
+          const result = satisfier(fixture.miniscript, options);
           expect(result.nonMalleableSats).toEqual(
             expect.arrayContaining(fixture.nonMalleableSats)
           );
@@ -21,10 +25,7 @@ const createGroupTest = (description, fixtures) =>
           );
 
           const malleableSats = fixture.malleableSats;
-          const unknownSats =
-            fixture.unknowns && fixture.unknowns.length
-              ? fixture.unknownSats
-              : [];
+          const unknownSats = fixture.unknownSats || [];
 
           expect(result.malleableSats).toEqual(
             expect.arrayContaining(malleableSats)
@@ -39,6 +40,7 @@ const createGroupTest = (description, fixtures) =>
     }
   });
 
-createGroupTest('Primitives', primitives);
 createGroupTest('Timelocks', timeLocks);
+createGroupTest('Primitives', primitives);
 createGroupTest('Other', other);
+createGroupTest('Knowns & unknowns combinations', knowns);

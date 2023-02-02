@@ -838,3 +838,61 @@ export const other = {
     malleableSats: []
   }
 };
+export const knowns = {
+  'with unknowns - and_v(v:pk(k),sha256(H))': {
+    miniscript: 'and_v(v:pk(k),sha256(H))',
+    script:
+      '<k> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_SHA256 <H> OP_EQUAL',
+    unknowns: ['<sha256_preimage(H)>'],
+    unknownSats: [{ asm: '<sha256_preimage(H)> <sig(k)>' }],
+    //If the preimage is unknown we cannot compute any satisfaction
+    nonMalleableSats: [],
+    malleableSats: []
+  },
+  'with knowns - and_v(v:pk(k),sha256(H))': {
+    miniscript: 'and_v(v:pk(k),sha256(H))',
+    script:
+      '<k> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_SHA256 <H> OP_EQUAL',
+    knowns: ['<sig(k)>'],
+    unknownSats: [{ asm: '<sha256_preimage(H)> <sig(k)>' }],
+    //If the preimage is unknown we cannot compute any satisfaction
+    nonMalleableSats: [],
+    malleableSats: []
+  },
+  'with all knowns - and_v(v:pk(k),sha256(H))': {
+    miniscript: 'and_v(v:pk(k),sha256(H))',
+    script:
+      '<k> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_SHA256 <H> OP_EQUAL',
+    knowns: ['<sig(k)>', '<sha256_preimage(H)>'],
+    unknownSats: [],
+    //If the preimage is unknown we cannot compute any satisfaction
+    nonMalleableSats: [{ asm: '<sha256_preimage(H)> <sig(k)>' }],
+    malleableSats: []
+  },
+  'throws with both knowns and unknowns - and_v(v:pk(k),sha256(H))': {
+    miniscript: 'and_v(v:pk(k),sha256(H))',
+    script:
+      '<k> OP_CHECKSIGVERIFY OP_SIZE <20> OP_EQUALVERIFY OP_SHA256 <H> OP_EQUAL',
+    knowns: ['<sig(k)>'],
+    unknowns: ['<sha256_preimage(H)>'],
+    throws: 'Cannot pass both knowns and unknowns'
+  },
+  'with unknows set - c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))': {
+    miniscript: 'c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))',
+    script:
+      '<key1> OP_CHECKSIG OP_NOTIF OP_SIZE <20> OP_EQUALVERIFY OP_RIPEMD160 <H> OP_EQUALVERIFY OP_ENDIF <key2> OP_CHECKSIG',
+    unknowns: ['<ripemd160_preimage(H)>'],
+    unknownSats: [{ asm: '<sig(key2)> <ripemd160_preimage(H)> 0' }],
+    nonMalleableSats: [{ asm: '<sig(key2)> <sig(key1)>' }],
+    malleableSats: []
+  },
+  'with knows set - c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))': {
+    miniscript: 'c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))',
+    script:
+      '<key1> OP_CHECKSIG OP_NOTIF OP_SIZE <20> OP_EQUALVERIFY OP_RIPEMD160 <H> OP_EQUALVERIFY OP_ENDIF <key2> OP_CHECKSIG',
+    knowns: ['<sig(key1)>', '<sig(key2)>'],
+    unknownSats: [{ asm: '<sig(key2)> <ripemd160_preimage(H)> 0' }],
+    nonMalleableSats: [{ asm: '<sig(key2)> <sig(key1)>' }],
+    malleableSats: []
+  }
+};
