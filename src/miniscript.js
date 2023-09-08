@@ -2,8 +2,6 @@
 // Adapted by Jose-Luis Landabaso - https://bitcoinerlab.com:
 //  compilePolicy, compileMiniscript with issane, issanesublevel and cleanAsm
 
-/** @module miniscript */
-
 import bindings from './bindings.js';
 const Module = bindings();
 
@@ -31,15 +29,27 @@ const cleanAsm = asm =>
     .replace(/ +(?= )/g, '');
 
 /**
+ * @typedef {Object} CompilePolicyResult
+ * @property {string} miniscript - The compiled miniscript expression.
+ * @property {string} asm - The compiled miniscript as Bitcoin asm code.
+ * @property {boolean} issane - Whether the miniscript is sane at the top level.
+ * @property {boolean} issanesublevel - Whether the miniscript is sane at the sublevel.
+ */
+
+/**
+ * @typedef {Object} CompileMiniscriptResult
+ * @property {string} asm - The Bitcoin asm code of the compiled miniscript expression.
+ * @property {boolean} issane - Whether the miniscript is sane at the top level.
+ * @property {boolean} issanesublevel - Whether the miniscript is sane at the sublevel.
+ */
+
+
+/**
  * Compiles a miniscript policy into a miniscript expression (if possible).
  * @Function
  *
  * @param {string} policy - The miniscript policy to compile.
- * @returns {Object} An object containing the following properties:
- *   - miniscript {string}: The compiled miniscript expression.
- *   - asm {string}: The compiled miniscript as Bitcoin asm code.
- *   - issane {boolean}: Whether the miniscript is sane at the top level.
- *   - issanesublevel {boolean}: Whether the miniscript is sane at the sublevel.
+ * @returns {CompilePolicyResult}
  */
 export const compilePolicy = policy => {
   const miniscript = Module._malloc(10000);
@@ -81,12 +91,7 @@ export const compilePolicy = policy => {
  * @Function
  *
  * @param {string} miniscript - A miniscript expression.
- * @returns {Object} An object containing the following keys:
- *   - `asm`: the Bitcoin asm code of the compiled miniscript expression.
- *   - `issane`: a boolean indicating whether the miniscript is sane at the top
- *   level.
- *   - `issanesublevel`: a boolean indicating whether the miniscript is sane at
- *   the sublevel.
+ * @returns {CompileMiniscriptResult}
  */
 export const compileMiniscript = miniscript => {
   const analysis = Module._malloc(50000);

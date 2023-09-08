@@ -1,24 +1,31 @@
 // Copyright (c) 2022 Jose-Luis Landabaso - https://bitcoinerlab.com
 // Distributed under the MIT software license
 
-/** @module satisfier */
-
 import { satisfactionsMaker } from './satisfactions.js';
 import { compileMiniscript } from '../miniscript.js';
 
 /**
- * @typedef {Object} module:satisfier.Solution
+ * @typedef {Object} Solution
  * @property {number} nSequence - the maximum nSequence time of all the sat() or dsat() expressions in the solution.
  * @property {number} nLockTime - the maximum nLockTime of all the sat() or dsat() expressions in the solution.
  * @property {string} asm - the resulting witness after combining all the sat() or dsat() expressions.
  */
 
 /**
- * @typedef {Object} module:satisfier.Satisfactions
- * @property {Solution[]} sats - An array of {@link module:satisfier.Solution} objects representing the sat() expressions.
- * @property {Solution[]} dsats - An array of {@link module:satisfier.Solution} objects representing the dsat() expressions.
- * @see {@link module:satisfier.Solution}
+ * @typedef {Object} Satisfactions
+ * @property {Solution[]} sats - An array of {@link Solution} objects representing the sat() expressions.
+ * @property {Solution[]} dsats - An array of {@link Solution} objects representing the dsat() expressions.
+ * @see {@link Solution}
  */
+
+/**
+ * @typedef {Object} SatisfierResult
+ * @property {Solution[]} nonMalleableSats - An array of {@link Solution} objects representing the non-malleable sat() expressions.
+ * @property {Solution[]} malleableSats - An array of {@link Solution} objects representing the malleable sat() expressions.
+ * @property {Solution[]} unknownSats - An array of {@link Solution} objects representing the sat() expressions that contain some of the `unknown` pieces of information.
+ * @see {@link Solution}
+ */
+
 
 /**
  * Computes the weight units (WU) of a witness.
@@ -80,9 +87,9 @@ function witnessWU(asm) {
  * Performs a malleability analysis on an array of sat() solutions.
  * @param {Solution[]} sats - the array of sat() solutions to perform the analysis on.
  * @returns {Object} An object with two keys:
- *   - `nonMalleableSats`: an array of {@link module:satisfier.Solution} objects representing the non-malleable sat() expressions.
- *   - `malleableSats`: an array of {@link module:satisfier.Solution} objects representing the malleable sat() expressions.
- * @see {@link module:satisfier.Solution}
+ *   - `nonMalleableSats`: an array of {@link Solution} objects representing the non-malleable sat() expressions.
+ *   - `malleableSats`: an array of {@link Solution} objects representing the malleable sat() expressions.
+ * @see {@link Solution}
  */
 function malleabilityAnalysis(sats) {
   sats = sats
@@ -179,11 +186,9 @@ function isScalarArg(functionName, argPosition) {
  * within subexpressions until all the arguments of a subexpression are
  * scalars.
  *
- * @see module:satisfactions
- *
  * @param {string} miniscript - A miniscript expression.
  *
- * @returns {module:satisfier.Satisfactions} - The satisfactions.
+ * @returns {Satisfactions} - The satisfactions.
  */
 const evaluate = miniscript => {
   if (typeof miniscript !== 'string')
@@ -266,7 +271,8 @@ const evaluate = miniscript => {
  * @Function
  *
  * @param {string} miniscript - A miniscript expression.
- * @param {string[]} unknowns - An array with the pieces of information that
+ * @param {object} [options]
+ * @param {string[]} [options.unknowns] - An array with the pieces of information that
  * cannot be used to construct solutions because they are unknown.
  *
  * For example, if a honest user cannot sign with `key`, doesn't know the
@@ -284,31 +290,28 @@ const evaluate = miniscript => {
  * Wuille's algorithm}.
  *
  * For example; if a miniscript is NOT sane at the top level because it can be
- * satisfyed using only preimages, then setting preimages
- * as unknowns will not change this behaviour.
+ * satisfyed using only preimages, then setting preimages as unknowns will not
+ * change this behaviour.
  *
  * The reason for this limitation is that the satisfier uses an unmodified
  * version of Wuille's algorithm as an initial precondition before finding
  * solutions. If the miniscript is sane, then unknowns can be set to produce
  * more possible solutions, including preimages, as described above.
  *
- * @param {string[]} knowns - An array with the only pieces of information
- * that can be used to build satisfactions. This is the complimentary to
- * unknowns. Only `knowns` or `unknowns` must be passed.
+ * @param {string[]} [options.knowns] - An array
+ * with the only pieces of information that can be used to build satisfactions.
+ * This is the complimentary to unknowns. Only `knowns` or `unknowns` must be
+ * passed.
  *
  * If neither knowns and unknowns is passed then it is assumed that there are
  * no unknowns, in other words, that all pieces of information are known.
  *
- * @returns {Object} an object with three keys:
- *   - `nonMalleableSats`: an array of {@link module:satisfier.Solution} objects
- *   representing the non-malleable sat() expressions.
- *   - `malleableSats`: an array of {@link module:satisfier.Solution} objects
- *   representing the malleable sat() expressions.
- *   - `unknownSats`: an array of {@link module:satisfier.Solution} objects
- *   representing the sat() expressions that contain some of the `unknown` pieces of information.
- * @see {@link module:satisfier.Solution}
+ * @returns {SatisfierResult}
+ *
+ * @see {@link Solution}
  */
-export const satisfier = (miniscript, { unknowns, knowns } = {}) => {
+export const satisfier = (miniscript, options = {}) => {
+  let { unknowns, knowns } = options;
   const { issane, issanesublevel } = compileMiniscript(miniscript);
 
   if (!issane) {

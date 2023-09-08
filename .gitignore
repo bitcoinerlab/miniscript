@@ -2,6 +2,7 @@
 *.swp
 node_modules/
 docs/
+webdocs/
 dist/
 miniscript/
 src/bindings.js
