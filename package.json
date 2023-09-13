@@ -11,14 +11,14 @@
     "descriptors"
   ],
   "homepage": "https://bitcoinerlab.com/modules/miniscript",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a Policy and Miniscript compiler, as well as a novel Satisfier for generating expressive witness scripts.",
   "main": "dist/index.js",
   "types": "types/index.d.ts",
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",
     "build:prod": "NODE_ENV=production rollup -c --bundleConfigAsCjs",
-    "prepublishOnly": "npm run build:prod && make clean && make && npm test",
+    "prepublishOnly": "make clean && make && npm run build:prod && npm test",
     "test": "jest",
     "example": "node ./example.js",
     "docs": "typedoc --options ./node_modules/@bitcoinerlab/configs/js_typedoc.json",
