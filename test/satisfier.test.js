@@ -1,5 +1,5 @@
 import { primitives, timeLocks, other, knowns } from './fixtures.js';
-import { satisfier } from '../src/satisfier/index.js';
+import { satisfier } from '../dist/index.js';
 
 const createGroupTest = (description, fixtures) =>
   describe(description, () => {

@@ -1,5 +1,5 @@
 import { primitives, timeLocks, other } from './fixtures.js';
-import { compileMiniscript } from '../src/miniscript.js';
+import { compileMiniscript } from '../dist/index.js';
 
 const createGroupTest = (description, fixtures) =>
   describe(description, () => {
