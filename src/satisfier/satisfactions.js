@@ -275,11 +275,11 @@ export const satisfactionsMaker = {
 
     const dsatsNonCanSolutionTemplates = []; //Sats/dsats with 1 ≤ #(sats) ≠ k
     const satsSolutionTemplates = []; //Sats/dsats with #(sats) = k
-    for (let i = 1; i < 1 << N; i++) {
+    for (let i = 1; i < 1 << N; i++) { // i expressed in binary will be: 0 0 ...N... 0 1,  0  0  ... N ... 1 0,  0  0  ... N ... 1 1,  ... , 1 1 1 1 ...N.... 1
       const c = [];
       let totalSatisfactions = 0;
       for (let j = 0; j < N; j++) {
-        if (i & (1 << j)) totalSatisfactions++;
+        if (i & (1 << j)) totalSatisfactions++; //binary mask of i (see above) and jth element to count how many "1"s
         c.push(i & (1 << j) ? `sat(${j})` : `dsat(${j})`);
       }
       if (totalSatisfactions !== k)
