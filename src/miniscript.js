@@ -46,7 +46,7 @@ const cleanAsm = asm =>
 
 /**
  * Compiles a miniscript policy into a miniscript expression (if possible).
- * @Function
+ * @function
  *
  * @param {string} policy - The miniscript policy to compile.
  * @returns {CompilePolicyResult}
@@ -88,7 +88,7 @@ export const compilePolicy = policy => {
 
 /**
  * Compiles a miniscript expression and returns its asm code.
- * @Function
+ * @function
  *
  * @param {string} miniscript - A miniscript expression.
  * @returns {CompileMiniscriptResult}
