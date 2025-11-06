@@ -268,7 +268,7 @@ const evaluate = miniscript => {
 
 /**
  * Obtains the satisfactions of a miniscript.
- * @Function
+ * @function
  *
  * @param {string} miniscript - A miniscript expression.
  * @param {object} [options]
