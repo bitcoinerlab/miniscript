@@ -3,6 +3,7 @@
 
 import { satisfactionsMaker } from './satisfactions.js';
 import { compileMiniscript } from '../miniscript.js';
+import { compileMiniscriptJs } from '../miniscript-js.js';
 
 /**
  * @typedef {Object} Solution
@@ -310,9 +311,9 @@ const evaluate = miniscript => {
  *
  * @see {@link Solution}
  */
-export const satisfier = (miniscript, options = {}) => {
+const createSatisfier = compileFn => (miniscript, options = {}) => {
   let { unknowns, knowns } = options;
-  const { issane, issanesublevel } = compileMiniscript(miniscript);
+  const { issane, issanesublevel } = compileFn(miniscript);
 
   if (!issane) {
     throw new Error(`Miniscript ${miniscript} is not sane.`);
@@ -365,3 +366,15 @@ export const satisfier = (miniscript, options = {}) => {
 
   return { ...malleabilityAnalysis(knownSats), unknownSats };
 };
+
+export const satisfier = createSatisfier(compileMiniscript);
+const compileMiniscriptJsForSatisfier = miniscript => {
+  try {
+    compileMiniscriptJs(miniscript);
+    return { issane: true, issanesublevel: true };
+  } catch (error) {
+    return { issane: false, issanesublevel: false };
+  }
+};
+
+export const satisfierJs = createSatisfier(compileMiniscriptJsForSatisfier);

@@ -3,30 +3,47 @@
 //  compilePolicy, compileMiniscript with issane, issanesublevel and cleanAsm
 
 import bindings from './bindings.js';
-const Module = bindings();
+import { cleanAsm } from './asm.js';
 
-const em_miniscript_compile = Module.cwrap('miniscript_compile', 'none', [
-  'string',
-  'number',
-  'number',
-  'number',
-  'number',
-  'number',
-  'number'
-]);
-const em_miniscript_analyze = Module.cwrap('miniscript_analyze', 'none', [
-  'string',
-  'number',
-  'number',
-  'number',
-  'number'
-]);
+let Module;
+let em_miniscript_compile;
+let em_miniscript_analyze;
+let modulePromise;
 
-const cleanAsm = asm =>
-  asm
-    .trim()
-    .replace(/\n/g, ' ')
-    .replace(/ +(?= )/g, '');
+const initModule = () => {
+  if (!modulePromise) {
+    modulePromise = Promise.resolve(bindings()).then(resolved => {
+      Module = resolved;
+      em_miniscript_compile = Module.cwrap('miniscript_compile', 'none', [
+        'string',
+        'number',
+        'number',
+        'number',
+        'number',
+        'number',
+        'number'
+      ]);
+      em_miniscript_analyze = Module.cwrap('miniscript_analyze', 'none', [
+        'string',
+        'number',
+        'number',
+        'number',
+        'number'
+      ]);
+      return Module;
+    });
+  }
+
+  return modulePromise;
+};
+
+export const ready = initModule();
+
+const ensureReady = () => {
+  if (!Module || !em_miniscript_compile || !em_miniscript_analyze) {
+    throw new Error('Miniscript bindings not ready. Await ready before calling compile functions.');
+  }
+};
 
 /**
  * @typedef {Object} CompilePolicyResult
@@ -52,6 +69,7 @@ const cleanAsm = asm =>
  * @returns {CompilePolicyResult}
  */
 export const compilePolicy = policy => {
+  ensureReady();
   const miniscript = Module._malloc(10000);
   const cost = Module._malloc(500);
   const asm = Module._malloc(100000);
@@ -94,6 +112,7 @@ export const compilePolicy = policy => {
  * @returns {CompileMiniscriptResult}
  */
 export const compileMiniscript = miniscript => {
+  ensureReady();
   const analysis = Module._malloc(50000);
   const asm = Module._malloc(100000);
   const issane = Module._malloc(10);

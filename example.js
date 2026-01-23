@@ -3,35 +3,40 @@
 const {
   compilePolicy,
   compileMiniscript,
-  satisfier
+  satisfier,
+  ready
 } = require('./dist/index.js');
 
-const policy = 'or(and(pk(A),older(8640)),pk(B))';
+(async () => {
+  await ready;
 
-const {
-  miniscript,
-  asm: asmFromPolicy,
-  issane: issaneFromPolicy
-} = compilePolicy(policy);
+  const policy = 'or(and(pk(A),older(8640)),pk(B))';
 
-const { asm: asmFromMiniscript, issane: issaneFromMiniscript } =
-  compileMiniscript(miniscript);
+  const {
+    miniscript,
+    asm: asmFromPolicy,
+    issane: issaneFromPolicy
+  } = compilePolicy(policy);
 
-const satisfactions = satisfier(miniscript);
+  const { asm: asmFromMiniscript, issane: issaneFromMiniscript } =
+    compileMiniscript(miniscript);
 
-console.assert(asmFromPolicy === asmFromMiniscript, 'ERROR: Asm mismatch.');
-console.assert(
-  issaneFromPolicy === issaneFromMiniscript,
-  'ERROR: issane mismatch.'
-);
+  const satisfactions = satisfier(miniscript);
 
-console.log({
-  miniscript,
-  asm: asmFromMiniscript,
-  issane: issaneFromMiniscript,
-  satisfactions
-});
+  console.assert(asmFromPolicy === asmFromMiniscript, 'ERROR: Asm mismatch.');
+  console.assert(
+    issaneFromPolicy === issaneFromMiniscript,
+    'ERROR: issane mismatch.'
+  );
 
-console.log(
-  compileMiniscript('and_v(v:pk(key),or_b(l:after(100),al:after(200)))')
-);
+  console.log({
+    miniscript,
+    asm: asmFromMiniscript,
+    issane: issaneFromMiniscript,
+    satisfactions
+  });
+
+  console.log(
+    compileMiniscript('and_v(v:pk(key),or_b(l:after(100),al:after(200)))')
+  );
+})();
