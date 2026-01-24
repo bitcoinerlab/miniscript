@@ -7,7 +7,7 @@ It includes a novel Miniscript Satisfier for generating explicit script witnesse
 ## Features
 
 - Compile Policies into Miniscript and Bitcoin scripts.
-- A Miniscript Satisfier that discards malleable solutions.
+- A Miniscript satisfier that enumerates satisfactions and classifies them as non-malleable vs malleable.
 - The Miniscript Satisfier is able to generate explicit script witnesses from Miniscript expressions using variables, such as `pk(key)`.
 
   For example, Miniscript `and_v(v:pk(key),after(10))` can be satisfied with `[{ asm: '<sig(key)>', nLockTime: 10 }]`.
@@ -120,6 +120,75 @@ The objects returned in the `nonMalleableSats`, `malleableSats` and `unknownSats
 - `asm`: a string with the script witness.
 - `nSequence`: an integer representing the nSequence value, if needed.
 - `nLockTime`: an integer representing the nLockTime value, if needed.
+
+### Satisfier-based malleability analysis
+
+This library **enumerates satisfactions** for a Miniscript and classifies each
+as **non-malleable** or **malleable**.
+
+This approach is **dynamic**: it evaluates malleability on a per-satisfaction
+basis by exploring the space of possible witnesses. In contrast, the [Miniscript
+specification](https://bitcoin.sipa.be/miniscript/) and the reference [C++
+implementation](https://github.com/sipa/miniscript) rely on **static typing plus
+a non-malleable satisfier construction**. Under the reference rules, a
+Miniscript is rejected if it admits a **spending context** (e.g., a particular
+locktime/sequence regime) in which the output is spendable but **every valid
+satisfaction is malleable**.
+
+This library may still accept such Miniscripts and will surface:
+
+- `nonMalleableSats`: satisfactions that are safe to use and
+- `malleableSats`: satisfactions that should not be used because a third party
+can transform them into a different valid satisfaction (without additional
+secrets).
+
+Example (malleable vs non-malleable spending contexts):
+
+```javascript
+const miniscript = 'and_v(v:pk(key),or_b(l:after(100),al:after(200)))';
+const result = satisfier(miniscript);
+```
+
+```json
+{
+  "nonMalleableSats": [
+    { "nLockTime": 100, "asm": "1 0 <sig(key)>" }
+  ],
+  "malleableSats": [
+    { "nLockTime": 200, "asm": "0 1 <sig(key)>" },
+    { "nLockTime": 200, "asm": "0 0 <sig(key)>" }
+  ],
+  "unknownSats": []
+}
+```
+
+In this example, the Miniscript has a **non-malleable satisfaction** when using
+`nLockTime = 100`. However, when `nLockTime = 200`, the output is still
+spendable but only **malleable satisfactions** exist (the witness differs only
+in selector values while the signature remains the same). Under the reference
+Miniscript rules, this makes the Miniscript **insane**, because there exists a
+satisfiable spending context with **no** non-malleable satisfaction.
+
+If your intended spend requires a context that only admits malleable
+satisfactions, you should reject the Miniscript for that use case.
+
+#### Recommended usage
+
+- Before adopting a Miniscript, verify that `nonMalleableSats` contains at least
+one satisfaction matching the spending context you intend to use (e.g., required
+`nLockTime` / `nSequence` constraints).
+- When spending, construct witnesses **only** from `nonMalleableSats`.
+- Treat `malleableSats` as diagnostics and never use them for production spends.
+
+### Tradeoffs and limitations
+
+The number of satisfactions can grow exponentially with Miniscript structure
+(e.g., large `thresh` trees). Most practical scripts remain small, but complex
+scripts can become expensive to analyze or infeasible to enumerate. As a
+reference point, `multi(2,key1,...,key20)` produces 190 satisfactions and
+completes in about 200ms on a laptop, while `multi(4,key1,...,key20)` yields
+4,845 satisfactions and takes around 6 seconds. This is a known tradeoff of the
+satisfier-based approach.
 
 ## Authors and Contributors
 
