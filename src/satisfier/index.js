@@ -313,7 +313,8 @@ const evaluate = miniscript => {
  */
 const createSatisfier = compileFn => (miniscript, options = {}) => {
   let { unknowns, knowns } = options;
-  const { issane, issanesublevel } = compileFn(miniscript);
+  const { issane, issanesublevel, sats: precomputedSats } =
+    compileFn(miniscript);
 
   if (!issane) {
     throw new Error(`Miniscript ${miniscript} is not sane.`);
@@ -332,7 +333,7 @@ const createSatisfier = compileFn => (miniscript, options = {}) => {
 
   const knownSats = [];
   const unknownSats = [];
-  const sats = evaluate(miniscript).sats || [];
+  const sats = precomputedSats || evaluate(miniscript).sats || [];
   sats.map(sat => {
     if (typeof sat.nSequence === 'undefined') delete sat.nSequence;
     if (typeof sat.nLockTime === 'undefined') delete sat.nLockTime;
@@ -369,12 +370,23 @@ const createSatisfier = compileFn => (miniscript, options = {}) => {
 
 export const satisfier = createSatisfier(compileMiniscript);
 const compileMiniscriptJsForSatisfier = miniscript => {
-  try {
-    compileMiniscriptJs(miniscript);
-    return { issane: true, issanesublevel: true };
-  } catch (error) {
-    return { issane: false, issanesublevel: false };
-  }
+  // We intentionally keep raw parsing/argument/timelock errors for debugging,
+  // so we do not catch exceptions here.
+  compileMiniscriptJs(miniscript);
+
+  // Miniscript top-level sanity requires that every satisfaction carries a
+  // signature, otherwise the spend does not commit to the transaction.
+  // We approximate the `s` property by enumerating satisfactions and ensuring
+  // none of them can be satisfied without a signature.
+  const sats = evaluate(miniscript).sats || [];
+  const hasSiglessSat = sats.some(sat => !sat.asm.includes('<sig('));
+  //FIXME: this is incomplete and should be implemmented in the compiler anuyway
+
+  return {
+    issane: !hasSiglessSat,
+    issanesublevel: !hasSiglessSat,
+    sats
+  };
 };
 
 export const satisfierJs = createSatisfier(compileMiniscriptJsForSatisfier);
