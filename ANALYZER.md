@@ -95,7 +95,7 @@ static analyzer.
 
 The static type system mirrors the Miniscript specification:
 
-- **Correctness**: base type (B/V/K/W), z/o/n input modifiers, dissatisfiable
+- **Correctness**: basic type (B/V/K/W), z/o/n input modifiers, dissatisfiable
   flag, and unit output.
 - **Malleability**: signed (`s`), forced (`f`), expressive (`e`), plus derived
   `nonMalleable`.
@@ -107,7 +107,7 @@ that take child types and return a parent type (or an error).
 
 Correctness is tracked as a small record with these fields:
 
-- `base`: one of `B`, `V`, `K`, `W` (boolean, verify, key, or wrapped output).
+- `basicType`: one of `B`, `V`, `K`, `W` (boolean, verify, key, or wrapped output).
 - `zeroArg`: `z` modifier (consumes exactly 0 stack elements).
 - `oneArg`: `o` modifier (consumes exactly 1 stack element).
 - `nonZero`: `n` modifier (top input is never required to be zero).
@@ -144,9 +144,9 @@ Malleability properties answer "if it is valid, can it be spent without
 malleable witnesses?" They are only meaningful after correctness passes.
 
 In code, correctness and malleability rules live side-by-side in
-`src/miniscript/types/`. Correctness helpers return `{ ok, corr, error? }` and
-malleability helpers return `signed/forced/expressive` plus `nonMalleable`. Both
-are applied in
+`src/miniscript/types/`. Correctness helpers return
+`{ ok, correctness, error? }` and malleability helpers return
+`signed/forced/expressive` plus `nonMalleable`. Both are applied in
 `src/miniscript/analyze.js` during `analyzeNode`.
 
 ## Analysis pass

@@ -14,9 +14,12 @@
  * @property {boolean} nonMalleable
  */
 
-const allNonMalleable = malls => malls.every(mall => mall.nonMalleable);
-const allExpressive = malls => malls.every(mall => mall.expressive);
-const countUnsigned = malls => malls.reduce((acc, mall) => acc + Number(!mall.signed), 0);
+const allNonMalleable = malleabilities =>
+  malleabilities.every(malleability => malleability.nonMalleable);
+const allExpressive = malleabilities =>
+  malleabilities.every(malleability => malleability.expressive);
+const countUnsigned = malleabilities =>
+  malleabilities.reduce((acc, malleability) => acc + Number(!malleability.signed), 0);
 
 export const trueMalleability = {
   signed: false,
@@ -63,50 +66,50 @@ export const timeMalleability = () => ({
 
 /**
  * Malleability rules for the `c:` wrapper.
- * @param {Malleability} mall
+ * @param {Malleability} malleability
  * @returns {Malleability}
  */
-export const checkMalleability = mall => ({
+export const checkMalleability = malleability => ({
   signed: true,
-  forced: mall.forced,
-  expressive: mall.expressive,
-  nonMalleable: mall.nonMalleable
+  forced: malleability.forced,
+  expressive: malleability.expressive,
+  nonMalleable: malleability.nonMalleable
 });
 
 /**
  * Malleability rules for the `d:` wrapper.
- * @param {Malleability} mall
+ * @param {Malleability} malleability
  * @returns {Malleability}
  */
-export const dupIfMalleability = mall => ({
-  signed: mall.signed,
+export const dupIfMalleability = malleability => ({
+  signed: malleability.signed,
   forced: false,
   expressive: true,
-  nonMalleable: mall.nonMalleable
+  nonMalleable: malleability.nonMalleable
 });
 
 /**
  * Malleability rules for the `j:` wrapper.
- * @param {Malleability} mall
+ * @param {Malleability} malleability
  * @returns {Malleability}
  */
-export const nonZeroMalleability = mall => ({
-  signed: mall.signed,
+export const nonZeroMalleability = malleability => ({
+  signed: malleability.signed,
   forced: false,
-  expressive: mall.forced,
-  nonMalleable: mall.nonMalleable
+  expressive: malleability.forced,
+  nonMalleable: malleability.nonMalleable
 });
 
 /**
  * Malleability rules for the `v:` wrapper.
- * @param {Malleability} mall
+ * @param {Malleability} malleability
  * @returns {Malleability}
  */
-export const verifyMalleability = mall => ({
-  signed: mall.signed,
+export const verifyMalleability = malleability => ({
+  signed: malleability.signed,
   forced: true,
   expressive: false,
-  nonMalleable: mall.nonMalleable
+  nonMalleable: malleability.nonMalleable
 });
 
 /**
