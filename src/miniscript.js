@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
+// Distributed under the MIT software license
+
 // Core Miniscript compiler entry point.
 // See ANALYZER.md for AST and analysis details.
 import { parseExpression } from './miniscript/parse.js';

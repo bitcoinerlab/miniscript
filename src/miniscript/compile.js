@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
+// Distributed under the MIT software license
+
 /**
  * Miniscript AST to ASM compiler.
  * See ANALYZER.md for AST details.

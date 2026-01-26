@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
+// Distributed under the MIT software license
+
 import commonjs from "@rollup/plugin-commonjs";
 
 export default {

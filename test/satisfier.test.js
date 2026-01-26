@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
+// Distributed under the MIT software license
+
 import { satisfier, ready } from '../dist/index.js';
 import { primitives, timeLocks, other, knowns } from './fixtures.js';
 

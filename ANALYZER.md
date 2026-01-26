@@ -17,7 +17,7 @@ Key modules:
 
 - `src/miniscript/parse.js`: parses expressions into an AST.
 - `src/miniscript/compile.js`: compiles the AST into ASM.
-- `src/miniscript/types.js`: correctness + malleability type rules.
+- `src/miniscript/types/`: correctness + malleability type rules.
 - `src/miniscript/analyze.js`: analysis pass that computes sanity flags.
 - `src/miniscript.js`: entry point that wires parse + compile + analysis.
 
@@ -95,25 +95,29 @@ static analyzer.
 
 The static type system mirrors the Miniscript specification:
 
-- **Correctness**: base type (B/V/K/W), input requirements, dissatisfiable
+- **Correctness**: base type (B/V/K/W), z/o/n input modifiers, dissatisfiable
   flag, and unit output.
 - **Malleability**: dissatisfactions (`Dissat`), `safe`, and `nonMalleable`.
 
-These rules are encoded in `src/miniscript/types.js` and are pure functions
+These rules are encoded in `src/miniscript/types/` and are pure functions
 that take child types and return a parent type (or an error).
 
 ### Correctness fields
 
-Correctness is tracked as a small record with four fields:
+Correctness is tracked as a small record with these fields:
 
 - `base`: one of `B`, `V`, `K`, `W` (boolean, verify, key, or wrapped output).
-- `input`: required input class (`Zero`, `One`, `Any`, `OneNonZero`,
-  `AnyNonZero`). This models the expected stack element shape.
+- `zeroArg`: `z` modifier (consumes exactly 0 stack elements).
+- `oneArg`: `o` modifier (consumes exactly 1 stack element).
+- `nonZero`: `n` modifier (top input is never required to be zero).
 - `dissatisfiable`: whether the fragment has a valid dissatisfaction (dsat).
-- `unit`: whether the fragment leaves exactly one stack element.
+- `unit`: whether the fragment leaves exactly one stack element (`u`).
 
 These fields are combined by the correctness rules (for example, `or_b` requires
 both children to be dissatisfiable and produces a `B` output).
+
+Context differences: in Tapscript, `d:X` gains the `unit` (`u`) property because
+`SCRIPT_VERIFY_MINIMALIF` enforces exact 0/1 encoding for IF.
 
 ## Correctness vs malleability
 
@@ -127,7 +131,7 @@ Malleability properties answer "if it is valid, can it be spent without
 malleable witnesses?" They are only meaningful after correctness passes.
 
 In code, correctness and malleability rules live side-by-side in
-`src/miniscript/types.js`. Correctness helpers return `{ ok, corr, error? }` and
+`src/miniscript/types/`. Correctness helpers return `{ ok, corr, error? }` and
 malleability helpers return `Dissat/safe/nonMalleable`. Both are applied in
 `src/miniscript/analyze.js` during `analyzeNode`.
 
@@ -178,7 +182,7 @@ When adding a new fragment, update all four layers:
 
 1. **Parser**: add a case in `parse.js`.
 2. **Compiler**: add ASM generation in `compile.js`.
-3. **Type system**: add correctness and malleability rules in `types.js`.
+3. **Type system**: add correctness and malleability rules in `src/miniscript/types/`.
 4. **Analyzer**: add a case in `analyze.js` and merge keys/timelocks.
 
 This keeps compile, analyze, and satisfy behavior consistent.

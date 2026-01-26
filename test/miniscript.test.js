@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
+// Distributed under the MIT software license
+
 import { primitives, timeLocks, other } from './fixtures.js';
 import { compileMiniscript, ready } from '../dist/index.js';
 
