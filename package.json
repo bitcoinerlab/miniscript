@@ -19,7 +19,7 @@
     "build": "rollup -c --bundleConfigAsCjs",
     "build:prod": "NODE_ENV=production rollup -c --bundleConfigAsCjs",
     "prepublishOnly": "npm test",
-    "test": "make clean && make && npm run build:prod && jest",
+    "test": "npm run build:prod && jest",
     "example": "node ./example.js",
     "docs": "typedoc --options ./node_modules/@bitcoinerlab/configs/js_typedoc.json",
     "webdocs": "typedoc --options ./node_modules/@bitcoinerlab/configs/js_webtypedoc.json"

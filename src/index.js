@@ -1,15 +1,13 @@
 // Copyright (c) 2023 Jose-Luis Landabaso - https://bitcoinerlab.com
 // Distributed under the MIT software license
 
-import { satisfier, satisfierJs } from './satisfier/index.js';
-import { compilePolicy, compileMiniscript, ready } from './miniscript.js';
-import { compileMiniscriptJs } from './miniscript-js.js';
+import { satisfier } from './satisfier/index.js';
+import { compileMiniscript, analyzeMiniscript } from './miniscript.js';
+const ready = Promise.resolve();
 
 export {
-  compilePolicy,
   compileMiniscript,
-  compileMiniscriptJs,
+  analyzeMiniscript,
   ready,
-  satisfier,
-  satisfierJs
+  satisfier
 };

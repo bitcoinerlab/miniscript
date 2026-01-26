@@ -34,13 +34,15 @@ You can test the examples in this section using the online playground demo avail
 
 ### Compiling Policies into Miniscript and Bitcoin script
 
-To compile a Policy into a Miniscript and Bitcoin ASM, you can use the `compilePolicy` function:
+Policy compilation is provided by the companion package
+[`@bitcoinerlab/miniscript-policies`](https://github.com/bitcoinerlab/miniscript-policies),
+which bundles the reference C++ compiler via Emscripten.
 
 ```javascript
-const { compilePolicy } = require('@bitcoinerlab/miniscript');
+const { compilePolicy, ready } = require('@bitcoinerlab/miniscript-policies');
 
+await ready;
 const policy = 'or(and(pk(A),older(8640)),pk(B))';
-
 const { miniscript, asm, issane } = compilePolicy(policy);
 ```
 
@@ -123,60 +125,41 @@ The objects returned in the `nonMalleableSats`, `malleableSats` and `unknownSats
 
 ### Satisfier-based malleability analysis
 
-This library **enumerates satisfactions** for a Miniscript and classifies each
-as **non-malleable** or **malleable**.
+This library implements the Miniscript [static type system](https://bitcoin.sipa.be/miniscript/)
+in JavaScript and exposes `issane`/`issanesublevel` via `analyzeMiniscript`. The
+`satisfier` uses that analysis and will throw if a miniscript is not sane.
 
-This approach is **dynamic**: it evaluates malleability on a per-satisfaction
-basis by exploring the space of possible witnesses. In contrast, the [Miniscript
-specification](https://bitcoin.sipa.be/miniscript/) and the reference [C++
-implementation](https://github.com/sipa/miniscript) rely on **static typing plus
-a non-malleable satisfier construction**. Under the reference rules, a
-Miniscript is rejected if it admits a **spending context** (e.g., a particular
-locktime/sequence regime) in which the output is spendable but **every valid
-satisfaction is malleable**.
+When a miniscript is sane, the satisfier **enumerates satisfactions** and
+classifies each as **non-malleable** or **malleable**. Even for sane scripts,
+there can be malleable satisfactions; they should never be used to spend funds.
 
-This library may still accept such Miniscripts and will surface:
-
-- `nonMalleableSats`: satisfactions that are safe to use and
-- `malleableSats`: satisfactions that should not be used because a third party
-can transform them into a different valid satisfaction (without additional
-secrets).
-
-Example (malleable vs non-malleable spending contexts):
+Example (safe vs malleable satisfactions):
 
 ```javascript
-const miniscript = 'and_v(v:pk(key),or_b(l:after(100),al:after(200)))';
+const miniscript = 'and_v(v:pk(key1),or_b(pk(key2),a:pk(key3)))';
 const result = satisfier(miniscript);
 ```
 
 ```json
 {
   "nonMalleableSats": [
-    { "nLockTime": 100, "asm": "1 0 <sig(key)>" }
+    { "asm": "0 <sig(key2)> <sig(key1)>" },
+    { "asm": "<sig(key3)> 0 <sig(key1)>" }
   ],
   "malleableSats": [
-    { "nLockTime": 200, "asm": "0 1 <sig(key)>" },
-    { "nLockTime": 200, "asm": "0 0 <sig(key)>" }
+    { "asm": "<sig(key3)> <sig(key2)> <sig(key1)>" }
   ],
   "unknownSats": []
 }
 ```
 
-In this example, the Miniscript has a **non-malleable satisfaction** when using
-`nLockTime = 100`. However, when `nLockTime = 200`, the output is still
-spendable but only **malleable satisfactions** exist (the witness differs only
-in selector values while the signature remains the same). Under the reference
-Miniscript rules, this makes the Miniscript **insane**, because there exists a
-satisfiable spending context with **no** non-malleable satisfaction.
-
-If your intended spend requires a context that only admits malleable
-satisfactions, you should reject the Miniscript for that use case.
+In this example, the satisfier exposes both safe and malleable witnesses. Use
+only `nonMalleableSats` when constructing a spend.
 
 #### Recommended usage
 
-- Before adopting a Miniscript, verify that `nonMalleableSats` contains at least
-one satisfaction matching the spending context you intend to use (e.g., required
-`nLockTime` / `nSequence` constraints).
+- Call `analyzeMiniscript` (or inspect `issane` from `compileMiniscript`) to
+ensure the miniscript is sane before enumeration.
 - When spending, construct witnesses **only** from `nonMalleableSats`.
 - Treat `malleableSats` as diagnostics and never use them for production spends.
 
