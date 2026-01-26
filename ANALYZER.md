@@ -97,7 +97,8 @@ The static type system mirrors the Miniscript specification:
 
 - **Correctness**: base type (B/V/K/W), z/o/n input modifiers, dissatisfiable
   flag, and unit output.
-- **Malleability**: dissatisfactions (`Dissat`), `safe`, and `nonMalleable`.
+- **Malleability**: signed (`s`), forced (`f`), expressive (`e`), plus derived
+  `nonMalleable`.
 
 These rules are encoded in `src/miniscript/types/` and are pure functions
 that take child types and return a parent type (or an error).
@@ -119,6 +120,18 @@ both children to be dissatisfiable and produces a `B` output).
 Context differences: in Tapscript, `d:X` gains the `unit` (`u`) property because
 `SCRIPT_VERIFY_MINIMALIF` enforces exact 0/1 encoding for IF.
 
+### Malleability fields
+
+Malleability uses the Miniscript `s/f/e` properties from the
+"Guaranteeing non-malleability" section of the spec:
+
+- `signed`: every satisfaction requires a signature.
+- `forced`: every dissatisfaction requires a signature (or none exist).
+- `expressive`: a unique unconditional dissatisfaction exists, and any
+  conditional dissatisfactions require signatures.
+- `nonMalleable`: derived from the spec's "Requires" column to guarantee a
+  non-malleable satisfaction exists.
+
 ## Correctness vs malleability
 
 Correctness properties answer "is this miniscript well-typed and semantically
@@ -132,7 +145,8 @@ malleable witnesses?" They are only meaningful after correctness passes.
 
 In code, correctness and malleability rules live side-by-side in
 `src/miniscript/types/`. Correctness helpers return `{ ok, corr, error? }` and
-malleability helpers return `Dissat/safe/nonMalleable`. Both are applied in
+malleability helpers return `signed/forced/expressive` plus `nonMalleable`. Both
+are applied in
 `src/miniscript/analyze.js` during `analyzeNode`.
 
 ## Analysis pass

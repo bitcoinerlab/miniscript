@@ -21,7 +21,9 @@ import {
   trueCorrectness,
   falseMalleability,
   hashMalleability,
+  checkMalleability,
   multiMalleability,
+  nonZeroMalleability,
   pkMalleability,
   timeMalleability,
   trueMalleability,
@@ -312,7 +314,7 @@ const analyzeNode = (node, ctx) => {
       const corr = checkCorrectness(child.type.corr);
       if (!corr.ok) return makeInvalidResult(corr.error);
       return makeValidResult({
-        type: makeType(corr.corr, child.type.mall),
+        type: makeType(corr.corr, checkMalleability(child.type.mall)),
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
@@ -350,7 +352,7 @@ const analyzeNode = (node, ctx) => {
       const corr = nonZeroCorrectness(child.type.corr);
       if (!corr.ok) return makeInvalidResult(corr.error);
       return makeValidResult({
-        type: makeType(corr.corr, dupIfMalleability(child.type.mall)),
+        type: makeType(corr.corr, nonZeroMalleability(child.type.mall)),
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
@@ -534,7 +536,7 @@ export const analyzeParsedNode = (node, options = {}) => {
     };
   }
 
-  const needsSignature = analysis.type.mall.safe;
+  const needsSignature = analysis.type.mall.signed;
   const nonMalleable = analysis.type.mall.nonMalleable;
   const timelockMix = analysis.timelockInfo.contains_combination;
   const hasDuplicateKeys = analysis.hasDuplicateKeys;
