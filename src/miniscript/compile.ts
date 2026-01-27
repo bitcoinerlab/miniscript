@@ -25,7 +25,11 @@ const encodeScriptNum = (value: string | number): number[] => {
     result.push(num & 0xff);
     num >>= 8;
   }
-  if (result[result.length - 1] & 0x80) {
+  const lastByte = result[result.length - 1];
+  if (lastByte === undefined) {
+    throw new Error('Invalid script number encoding');
+  }
+  if (lastByte & 0x80) {
     result.push(0x00);
   }
   return result;
@@ -55,12 +59,14 @@ const verifyOpcodeValues: Set<string> = new Set([
 const applyVerify = (script: string[]): string[] => {
   if (!script.length) return ['OP_VERIFY'];
   const last = script[script.length - 1];
+  if (last === undefined) {
+    throw new Error('Empty script has no opcode');
+  }
   if (verifyOpcodeValues.has(last)) {
     return script;
   }
-  if (verifyOpcodes.has(last)) {
-    return [...script.slice(0, -1), verifyOpcodes.get(last) as string];
-  }
+  const verifyOpcode = verifyOpcodes.get(last);
+  if (verifyOpcode) return [...script.slice(0, -1), verifyOpcode];
   return [...script, 'OP_VERIFY'];
 };
 
@@ -202,9 +208,13 @@ export const compileNode = (
       ];
     case 'thresh': {
       if (!node.subs.length) return [];
-      let script = [...compileNode(node.subs[0], false)];
+      const firstSub = node.subs[0];
+      if (!firstSub) throw new Error('thresh() missing first sub');
+      let script = [...compileNode(firstSub, false)];
       for (let i = 1; i < node.subs.length; i++) {
-        script = [...script, ...compileNode(node.subs[i], false), 'OP_ADD'];
+        const sub = node.subs[i];
+        if (!sub) throw new Error(`thresh() missing sub at index ${i}`);
+        script = [...script, ...compileNode(sub, false), 'OP_ADD'];
       }
       script.push(formatNumber(node.k));
       script.push(verify ? 'OP_EQUALVERIFY' : 'OP_EQUAL');
