@@ -1,11 +1,15 @@
 // Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
 // Distributed under the MIT software license
 
-/** @module maxLock */
+// @ts-expect-error No types available for bip68
 import bip68 from 'bip68';
 
-export const ABSOLUTE = 'ABSOLUTE';
-export const RELATIVE = 'RELATIVE';
+export type LockType = 'ABSOLUTE' | 'RELATIVE';
+
+type Bip68DecodeResult = {
+  seconds?: number;
+  blocks?: number;
+};
 
 /**
  * Calculates the maximum lock time value between two lock time values (a and b)
@@ -18,78 +22,82 @@ export const RELATIVE = 'RELATIVE';
  *
  * If only a or b is undefined it asserts the value and returns it.
  * If none are defined it returns undefined.
- * @param {string|number} [a] - The first lock time value to compare.
- * @param {string|number} [b] - The second lock time value to compare.
- * @param {string} lockType - The type of lock time to use. Can be either "ABSOLUTE" or "RELATIVE".
- * @return {number} - The maximum lock time value between a and b.
  */
 
-export function maxLock(a, b, lockType) {
+export function maxLock(
+  /** The first lock time value to compare. */
+  a?: string | number,
+  /** The second lock time value to compare. */
+  b?: string | number,
+  /** The type of lock time to use. */
+  lockType?: LockType
+): number | undefined {
   if (typeof a === 'undefined' && typeof b === 'undefined') {
     return undefined;
   }
   if (typeof lockType === 'undefined')
     throw new Error('lockType must be specified');
   // Check that lockType is either "ABSOLUTE" or "RELATIVE"
-  if (lockType !== ABSOLUTE && lockType !== RELATIVE)
+  if (lockType !== 'ABSOLUTE' && lockType !== 'RELATIVE')
     throw new Error('lockType must be either "ABSOLUTE" or "RELATIVE"');
 
-  function isInteger(number) {
-    const isNumeric = !isNaN(number) && !isNaN(parseFloat(number));
-    if (isNumeric && Number.isInteger(Number(number))) return true;
-    else return false;
-  }
+  const isInteger = (value: string | number): boolean => {
+    const isNumeric =
+      !isNaN(value as number) && !isNaN(parseFloat(String(value)));
+    if (isNumeric && Number.isInteger(Number(value))) return true;
+    return false;
+  };
+
+  let aValue: number | undefined;
+  let bValue: number | undefined;
+  let decodedA: Bip68DecodeResult | undefined;
+  let decodedB: Bip68DecodeResult | undefined;
+
   if (typeof a !== 'undefined') {
     if (isInteger(a) === false)
       throw new Error('nSequence/nLockTime must be an integer: ' + a);
-    a = Number(a);
-    if (
-      lockType === RELATIVE &&
-      !bip68.decode(a).hasOwnProperty('seconds') &&
-      !bip68.decode(a).hasOwnProperty('blocks')
-    )
-      throw new Error('Invalid bip68 encoded a value: ' + a);
+    aValue = Number(a);
+    if (lockType === 'RELATIVE') {
+      decodedA = bip68.decode(aValue) as Bip68DecodeResult;
+      if (!('seconds' in decodedA) && !('blocks' in decodedA))
+        throw new Error('Invalid bip68 encoded a value: ' + aValue);
+    }
   }
   if (typeof b !== 'undefined') {
     if (isInteger(b) === false)
       throw new Error('nSequence/nLockTime must be an integer: ' + b);
-    b = Number(b);
-    if (
-      lockType === RELATIVE &&
-      !bip68.decode(b).hasOwnProperty('seconds') &&
-      !bip68.decode(b).hasOwnProperty('blocks')
-    )
-      throw new Error('Invalid bip68 encoded b value: ' + b);
+    bValue = Number(b);
+    if (lockType === 'RELATIVE') {
+      decodedB = bip68.decode(bValue) as Bip68DecodeResult;
+      if (!('seconds' in decodedB) && !('blocks' in decodedB))
+        throw new Error('Invalid bip68 encoded b value: ' + bValue);
+    }
   }
 
-  if (typeof a !== 'undefined' && typeof b !== 'undefined') {
-    if (lockType === ABSOLUTE) {
+  if (typeof aValue !== 'undefined' && typeof bValue !== 'undefined') {
+    if (lockType === 'ABSOLUTE') {
       // Both a and b must be either below 500000000 or both above or equal 500000000
       if (
-        (a < 500000000 && b >= 500000000) ||
-        (a >= 500000000 && b < 500000000)
+        (aValue < 500000000 && bValue >= 500000000) ||
+        (aValue >= 500000000 && bValue < 500000000)
       ) {
         throw new Error(
           'nLockTime values must be either below 500000000 or both above or equal 500000000'
         );
       }
     } else {
-      const decodedA = bip68.decode(a);
-      const decodedB = bip68.decode(b);
-
-      if (
-        decodedA.hasOwnProperty('seconds') !==
-        decodedB.hasOwnProperty('seconds')
-      ) {
+      if (!decodedA || !decodedB)
+        throw new Error('Invalid bip68 encoded value');
+      if ('seconds' in decodedA !== 'seconds' in decodedB) {
         throw new Error(
           'a and b must both be either represent seconds or block height'
         );
       }
     }
-    return Math.max(a, b);
+    return Math.max(aValue, bValue);
   }
 
-  if (typeof a !== 'undefined') return a;
-  if (typeof b !== 'undefined') return b;
+  if (typeof aValue !== 'undefined') return aValue;
+  if (typeof bValue !== 'undefined') return bValue;
   return undefined;
 }
