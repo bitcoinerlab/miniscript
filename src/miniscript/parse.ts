@@ -7,16 +7,44 @@
  * See ANALYZER.md for the AST shape and examples.
  */
 
-const wrapperChars = new Set(['a', 's', 'c', 'd', 'v', 'j', 'n', 't', 'l', 'u']);
+export type Node =
+  | { type: '0' | '1' }
+  | { type: 'pk_k' | 'pk_h'; key: string }
+  | {
+      type: 'older' | 'after' | 'sha256' | 'ripemd160' | 'hash256' | 'hash160';
+      value: string;
+    }
+  | { type: 'multi' | 'multi_a'; k: string; keys: string[] }
+  | { type: 'thresh'; k: string; subs: Node[] }
+  | {
+      type: 'and_v' | 'and_b' | 'or_b' | 'or_c' | 'or_d' | 'or_i';
+      args: [Node, Node];
+    }
+  | { type: 'andor'; args: [Node, Node, Node] }
+  | { type: 'a' | 's' | 'c' | 'd' | 'v' | 'j' | 'n'; arg: Node };
 
-/**
- * Split a function argument list without breaking nested expressions.
- * @param {string} args
- * @returns {string[]}
- */
-const splitArgs = argsString => {
+type WrapperLetter = 'a' | 's' | 'c' | 'd' | 'v' | 'j' | 'n' | 't' | 'l' | 'u';
+
+const allowedWrapperLetterSet = new Set<WrapperLetter>([
+  'a',
+  's',
+  'c',
+  'd',
+  'v',
+  'j',
+  'n',
+  't',
+  'l',
+  'u'
+]);
+
+/** Split a function argument list without breaking nested expressions. */
+const splitArgs = (
+  /** Raw argument string. */
+  argsString: string
+): string[] => {
   if (!argsString) return [];
-  const result = [];
+  const result: string[] = [];
   let level = 0;
   let last = 0;
   for (let i = 0; i < argsString.length; i++) {
@@ -31,14 +59,14 @@ const splitArgs = argsString => {
   return result.map(arg => arg.trim()).filter(Boolean);
 };
 
-/**
- * Apply a wrapper to a parsed node, expanding syntactic sugar.
- * @param {string} wrapper
- * @param {object} node
- * @returns {object}
- */
-const wrapNode = (wrapper, node) => {
-  switch (wrapper) {
+/** Apply a wrapper to a parsed node, expanding syntactic sugar. */
+const wrapNode = (
+  /** Wrapper letter to apply. */
+  wrapperLetter: WrapperLetter,
+  /** Parsed node to wrap. */
+  node: Node
+): Node => {
+  switch (wrapperLetter) {
     case 'a':
     case 's':
     case 'c':
@@ -46,7 +74,7 @@ const wrapNode = (wrapper, node) => {
     case 'v':
     case 'j':
     case 'n':
-      return { type: wrapper, arg: node };
+      return { type: wrapperLetter, arg: node };
     case 't':
       return { type: 'and_v', args: [node, { type: '1' }] };
     case 'l':
@@ -54,16 +82,15 @@ const wrapNode = (wrapper, node) => {
     case 'u':
       return { type: 'or_i', args: [node, { type: '0' }] };
     default:
-      throw new Error(`Unknown wrapper: ${wrapper}`);
+      throw new Error(`Unknown wrapper: ${wrapperLetter}`);
   }
 };
 
-/**
- * Parse a base fragment (no wrappers).
- * @param {string} expression
- * @returns {object}
- */
-const parseBase = expression => {
+/** Parse a base fragment (no wrappers). */
+const parseBase = (
+  /** Miniscript fragment without wrappers. */
+  expression: string
+): Node => {
   if (expression === '0' || expression === '1') return { type: expression };
   const openParen = expression.indexOf('(');
   if (openParen === -1 || !expression.endsWith(')')) {
@@ -75,7 +102,8 @@ const parseBase = expression => {
 
   switch (name) {
     case 'pk': {
-      if (args.length !== 1) throw new Error(`Invalid pk() args: ${expression}`);
+      if (args.length !== 1)
+        throw new Error(`Invalid pk() args: ${expression}`);
       return wrapNode('c', { type: 'pk_k', key: args[0] });
     }
     case 'pkh': {
@@ -88,11 +116,19 @@ const parseBase = expression => {
         throw new Error(`Invalid and_n() args: ${expression}`);
       return {
         type: 'andor',
-        args: [parseExpression(args[0]), parseExpression(args[1]), { type: '0' }]
+        args: [
+          parseExpression(args[0]),
+          parseExpression(args[1]),
+          { type: '0' }
+        ]
       };
     }
     case 'pk_k':
-    case 'pk_h':
+    case 'pk_h': {
+      if (args.length !== 1)
+        throw new Error(`Invalid ${name}() args: ${expression}`);
+      return { type: name, key: args[0] };
+    }
     case 'older':
     case 'after':
     case 'sha256':
@@ -101,17 +137,17 @@ const parseBase = expression => {
     case 'hash160': {
       if (args.length !== 1)
         throw new Error(`Invalid ${name}() args: ${expression}`);
-      const key = name === 'pk_k' || name === 'pk_h' ? args[0] : undefined;
-      const value = key ? undefined : args[0];
-      return { type: name, key, value };
+      return { type: name, value: args[0] };
     }
     case 'multi':
     case 'multi_a': {
-      if (args.length < 2) throw new Error(`Invalid ${name}() args: ${expression}`);
+      if (args.length < 2)
+        throw new Error(`Invalid ${name}() args: ${expression}`);
       return { type: name, k: args[0], keys: args.slice(1) };
     }
     case 'thresh': {
-      if (args.length < 2) throw new Error(`Invalid thresh() args: ${expression}`);
+      if (args.length < 2)
+        throw new Error(`Invalid thresh() args: ${expression}`);
       return {
         type: 'thresh',
         k: args[0],
@@ -148,29 +184,34 @@ const parseBase = expression => {
   }
 };
 
-/**
- * Parse a Miniscript expression into an AST node.
- * @param {string} input
- * @returns {object}
- */
-export const parseExpression = input => {
+/** Parse a Miniscript expression into an AST node. */
+export const parseExpression = (
+  /** Raw miniscript expression. */
+  input: string
+): Node => {
   if (typeof input !== 'string') {
     throw new Error(`Invalid miniscript expression: ${input}`);
   }
   let expression = input.trim();
-  const wrappers = [];
+  const wrapperLetters: WrapperLetter[] = [];
   while (true) {
     const match = expression.match(/^([a-z]+):/);
     if (!match) break;
     const prefix = match[1];
-    if (![...prefix].every(char => wrapperChars.has(char))) break;
-    wrappers.push(...prefix.split(''));
+    if (
+      ![...prefix].every(char =>
+        allowedWrapperLetterSet.has(char as WrapperLetter)
+      )
+    ) {
+      break;
+    }
+    wrapperLetters.push(...(prefix.split('') as WrapperLetter[]));
     expression = expression.slice(prefix.length + 1);
   }
 
   let node = parseBase(expression);
-  for (let i = wrappers.length - 1; i >= 0; i--) {
-    node = wrapNode(wrappers[i], node);
+  for (let i = wrapperLetters.length - 1; i >= 0; i--) {
+    node = wrapNode(wrapperLetters[i], node);
   }
   return node;
 };
