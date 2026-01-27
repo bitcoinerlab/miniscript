@@ -71,9 +71,17 @@ const newTimelockInfo = () => ({
 /**
  * Combine timelock info for threshold combinators.
  *
- * The threshold controls whether multiple branches can be taken. When
- * `threshold > 1`, mutually exclusive height/time constraints across
- * branches mark the combination as unspendable.
+ * Each child node reports whether it uses relative or absolute timelocks and
+ * whether those timelocks are height based or time based. This function
+ * aggregates those flags for the parent node.
+ *
+ * If threshold > 1 then multiple child nodes can be required, so mixing height
+ * locks and time locks across different child nodes makes that spend path
+ * impossible. We mark that as contains_combination.
+ *
+ * If threshold === 1 then it is a logical OR: only one child node needs to be
+ * satisfied, so conflicts do not matter.
+ *
  * @param {number} threshold
  * @param {object[]} timelockInfos
  * @returns {object}
