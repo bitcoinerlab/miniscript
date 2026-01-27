@@ -6,12 +6,12 @@
  * See ANALYZER.md for AST details.
  */
 
-const toHex = bytes =>
-  bytes
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
+import type { Node } from './parse';
 
-const encodeScriptNum = value => {
+const toHex = (bytes: number[]): string =>
+  bytes.map(byte => byte.toString(16).padStart(2, '0')).join('');
+
+const encodeScriptNum = (value: string | number): number[] => {
   let num = Number(value);
   if (!Number.isInteger(num)) {
     throw new Error(`Invalid script number: ${value}`);
@@ -20,7 +20,7 @@ const encodeScriptNum = value => {
   if (num < 0) {
     throw new Error(`Negative numbers not supported: ${value}`);
   }
-  const result = [];
+  const result: number[] = [];
   while (num > 0) {
     result.push(num & 0xff);
     num >>= 8;
@@ -31,7 +31,7 @@ const encodeScriptNum = value => {
   return result;
 };
 
-const formatNumber = value => {
+const formatNumber = (value: string | number): string => {
   const num = Number(value);
   if (!Number.isInteger(num)) {
     throw new Error(`Invalid script number: ${value}`);
@@ -41,33 +41,36 @@ const formatNumber = value => {
   return `<${toHex(bytes)}>`;
 };
 
-const verifyOpcodes = new Map([
+const verifyOpcodes: Map<string, string> = new Map([
   ['OP_CHECKSIG', 'OP_CHECKSIGVERIFY'],
   ['OP_CHECKMULTISIG', 'OP_CHECKMULTISIGVERIFY'],
   ['OP_EQUAL', 'OP_EQUALVERIFY'],
   ['OP_NUMEQUAL', 'OP_NUMEQUALVERIFY']
 ]);
-const verifyOpcodeValues = new Set([...verifyOpcodes.values(), 'OP_VERIFY']);
+const verifyOpcodeValues: Set<string> = new Set([
+  ...verifyOpcodes.values(),
+  'OP_VERIFY'
+]);
 
-const applyVerify = script => {
+const applyVerify = (script: string[]): string[] => {
   if (!script.length) return ['OP_VERIFY'];
   const last = script[script.length - 1];
   if (verifyOpcodeValues.has(last)) {
     return script;
   }
   if (verifyOpcodes.has(last)) {
-    return [...script.slice(0, -1), verifyOpcodes.get(last)];
+    return [...script.slice(0, -1), verifyOpcodes.get(last) as string];
   }
   return [...script, 'OP_VERIFY'];
 };
 
-/**
- * Compile a Miniscript AST node to ASM tokens.
- * @param {object} node
- * @param {boolean} verify
- * @returns {string[]}
- */
-export const compileNode = (node, verify = false) => {
+/** Compile a Miniscript AST node to ASM tokens. */
+export const compileNode = (
+  /** Parsed miniscript node. */
+  node: Node,
+  /** Whether to enforce a verify opcode. */
+  verify = false
+): string[] => {
   switch (node.type) {
     case '0':
     case '1':
@@ -75,7 +78,12 @@ export const compileNode = (node, verify = false) => {
     case 'pk_k':
       return [`<${node.key}>`];
     case 'pk_h':
-      return ['OP_DUP', 'OP_HASH160', `<HASH160(${node.key})>`, 'OP_EQUALVERIFY'];
+      return [
+        'OP_DUP',
+        'OP_HASH160',
+        `<HASH160(${node.key})>`,
+        'OP_EQUALVERIFY'
+      ];
     case 'older':
       return [formatNumber(node.value), 'OP_CHECKSEQUENCEVERIFY'];
     case 'after':
@@ -221,7 +229,10 @@ export const compileNode = (node, verify = false) => {
       script.push(verify ? 'OP_NUMEQUALVERIFY' : 'OP_NUMEQUAL');
       return script;
     }
-    default:
-      throw new Error(`Unknown miniscript node: ${node.type}`);
+    default: {
+      const _exhaustive: never = node;
+      void _exhaustive;
+      throw new Error('Unknown miniscript node');
+    }
   }
 };
