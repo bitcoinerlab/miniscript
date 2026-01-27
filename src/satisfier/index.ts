@@ -224,9 +224,10 @@ const evaluate = (
     throw new Error('Invalid expression: ' + miniscript);
   //convert wrappers like this "sln:" into "s:l:n:"
   while (miniscript.match(/^[a-z]{2,}:/)) {
-    miniscript = miniscript.replace(/^[a-z]{2,}:/, match =>
-      match.replace(match[0], match[0] + ':')
-    );
+    miniscript = miniscript.replace(/^[a-z]{2,}:/, match => {
+      const first = match.slice(0, 1);
+      return `${first}:${match.slice(1)}`;
+    });
   }
   //https://bitcoin.sipa.be/miniscript/
   //The pk, pkh, and and_n fragments and t:, l:, and u: wrappers are syntactic
