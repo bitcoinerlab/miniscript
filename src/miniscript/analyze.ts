@@ -6,11 +6,10 @@
  * See ANALYZER.md for the full flow.
  */
 
-// @ts-ignore No types available for bip68
+// @ts-expect-error No types available for bip68
 import bip68 from 'bip68';
 import { parseExpression, type Node } from './parse';
 import {
-  makeType,
   falseCorrectness,
   hashCorrectness,
   multiCorrectness,
@@ -53,7 +52,8 @@ import {
   thresholdMalleability,
   dupIfMalleability,
   verifyMalleability,
-  type MiniscriptType
+  type Correctness,
+  type Malleability
 } from './types';
 
 type TimelockInfo = {
@@ -80,7 +80,8 @@ type Bip68DecodeResult = {
 
 type ValidAnalysisResult = {
   valid: true;
-  type: MiniscriptType;
+  correctness: Correctness;
+  malleability: Malleability;
   timelockInfo: TimelockInfo;
   keys: Set<string>;
   hasDuplicateKeys: boolean;
@@ -89,7 +90,8 @@ type ValidAnalysisResult = {
 type InvalidAnalysisResult = {
   valid: false;
   error: string;
-  type: null;
+  correctness: null;
+  malleability: null;
   timelockInfo: TimelockInfo;
   keys: Set<string>;
   hasDuplicateKeys: boolean;
@@ -117,8 +119,10 @@ type ParsedAnalysisResult = {
 };
 
 type ValidResultParams = {
-  /** Combined correctness and malleability. */
-  type: MiniscriptType;
+  /** Correctness flags for the node. */
+  correctness: Correctness;
+  /** Malleability flags for the node. */
+  malleability: Malleability;
   /** Aggregated timelock info. */
   timelockInfo: TimelockInfo;
   /** Set of keys used in subtree. */
@@ -199,13 +203,15 @@ const parseInteger = (
 };
 
 const makeValidResult = ({
-  type,
+  correctness,
+  malleability,
   timelockInfo,
   keys,
   hasDuplicateKeys
 }: ValidResultParams): ValidAnalysisResult => ({
   valid: true,
-  type,
+  correctness,
+  malleability,
   timelockInfo,
   keys,
   hasDuplicateKeys
@@ -217,7 +223,8 @@ const makeInvalidResult = (
 ): InvalidAnalysisResult => ({
   valid: false,
   error,
-  type: null,
+  correctness: null,
+  malleability: null,
   timelockInfo: newTimelockInfo(),
   keys: new Set<string>(),
   hasDuplicateKeys: false
@@ -252,7 +259,8 @@ const analyzeNode = (
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, falseMalleability),
+        correctness: correctnessResult.correctness,
+        malleability: falseMalleability,
         timelockInfo: newTimelockInfo(),
         keys: new Set<string>(),
         hasDuplicateKeys: false
@@ -263,7 +271,8 @@ const analyzeNode = (
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, trueMalleability),
+        correctness: correctnessResult.correctness,
+        malleability: trueMalleability,
         timelockInfo: newTimelockInfo(),
         keys: new Set<string>(),
         hasDuplicateKeys: false
@@ -274,7 +283,8 @@ const analyzeNode = (
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, pkMalleability()),
+        correctness: correctnessResult.correctness,
+        malleability: pkMalleability(),
         timelockInfo: newTimelockInfo(),
         keys: new Set<string>([node.key]),
         hasDuplicateKeys: false
@@ -285,7 +295,8 @@ const analyzeNode = (
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, pkMalleability()),
+        correctness: correctnessResult.correctness,
+        malleability: pkMalleability(),
         timelockInfo: newTimelockInfo(),
         keys: new Set<string>([node.key]),
         hasDuplicateKeys: false
@@ -299,7 +310,8 @@ const analyzeNode = (
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, hashMalleability()),
+        correctness: correctnessResult.correctness,
+        malleability: hashMalleability(),
         timelockInfo: newTimelockInfo(),
         keys: new Set<string>(),
         hasDuplicateKeys: false
@@ -318,7 +330,8 @@ const analyzeNode = (
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, timeMalleability()),
+        correctness: correctnessResult.correctness,
+        malleability: timeMalleability(),
         timelockInfo,
         keys: new Set<string>(),
         hasDuplicateKeys: false
@@ -341,7 +354,8 @@ const analyzeNode = (
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, timeMalleability()),
+        correctness: correctnessResult.correctness,
+        malleability: timeMalleability(),
         timelockInfo,
         keys: new Set<string>(),
         hasDuplicateKeys: false
@@ -365,7 +379,8 @@ const analyzeNode = (
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, multiMalleability()),
+        correctness: correctnessResult.correctness,
+        malleability: multiMalleability(),
         timelockInfo: newTimelockInfo(),
         keys,
         hasDuplicateKeys
@@ -389,7 +404,8 @@ const analyzeNode = (
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, multiMalleability()),
+        correctness: correctnessResult.correctness,
+        malleability: multiMalleability(),
         timelockInfo: newTimelockInfo(),
         keys,
         hasDuplicateKeys
@@ -399,11 +415,12 @@ const analyzeNode = (
       // altstack wrapper (a:)
       const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
-      const correctnessResult = altCorrectness(child.type.correctness);
+      const correctnessResult = altCorrectness(child.correctness);
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, child.type.malleability),
+        correctness: correctnessResult.correctness,
+        malleability: child.malleability,
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
@@ -413,11 +430,12 @@ const analyzeNode = (
       // swap wrapper (s:)
       const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
-      const correctnessResult = swapCorrectness(child.type.correctness);
+      const correctnessResult = swapCorrectness(child.correctness);
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, child.type.malleability),
+        correctness: correctnessResult.correctness,
+        malleability: child.malleability,
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
@@ -427,14 +445,12 @@ const analyzeNode = (
       // check wrapper (c:)
       const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
-      const correctnessResult = checkCorrectness(child.type.correctness);
+      const correctnessResult = checkCorrectness(child.correctness);
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          checkMalleability(child.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: checkMalleability(child.malleability),
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
@@ -445,15 +461,13 @@ const analyzeNode = (
       const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
       const correctnessResult = context.tapscript
-        ? dupIfTapscriptCorrectness(child.type.correctness)
-        : dupIfWshCorrectness(child.type.correctness);
+        ? dupIfTapscriptCorrectness(child.correctness)
+        : dupIfWshCorrectness(child.correctness);
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          dupIfMalleability(child.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: dupIfMalleability(child.malleability),
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
@@ -463,14 +477,12 @@ const analyzeNode = (
       // verify wrapper (v:)
       const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
-      const correctnessResult = verifyCorrectness(child.type.correctness);
+      const correctnessResult = verifyCorrectness(child.correctness);
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          verifyMalleability(child.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: verifyMalleability(child.malleability),
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
@@ -480,14 +492,12 @@ const analyzeNode = (
       // nonzero wrapper (j:)
       const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
-      const correctnessResult = nonZeroCorrectness(child.type.correctness);
+      const correctnessResult = nonZeroCorrectness(child.correctness);
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          nonZeroMalleability(child.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: nonZeroMalleability(child.malleability),
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
@@ -497,11 +507,12 @@ const analyzeNode = (
       // zero-not-equal wrapper (n:)
       const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
-      const correctnessResult = zeroNotEqualCorrectness(child.type.correctness);
+      const correctnessResult = zeroNotEqualCorrectness(child.correctness);
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(correctnessResult.correctness, child.type.malleability),
+        correctness: correctnessResult.correctness,
+        malleability: child.malleability,
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
@@ -513,17 +524,15 @@ const analyzeNode = (
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = andVCorrectness(
-        left.type.correctness,
-        right.type.correctness
+        left.correctness,
+        right.correctness
       );
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          andVMalleability(left.type.malleability, right.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: andVMalleability(left.malleability, right.malleability),
         timelockInfo: combineAndTimelocks(
           left.timelockInfo,
           right.timelockInfo
@@ -538,17 +547,15 @@ const analyzeNode = (
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = andBCorrectness(
-        left.type.correctness,
-        right.type.correctness
+        left.correctness,
+        right.correctness
       );
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          andBMalleability(left.type.malleability, right.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: andBMalleability(left.malleability, right.malleability),
         timelockInfo: combineAndTimelocks(
           left.timelockInfo,
           right.timelockInfo
@@ -563,17 +570,15 @@ const analyzeNode = (
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = orBCorrectness(
-        left.type.correctness,
-        right.type.correctness
+        left.correctness,
+        right.correctness
       );
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          orBMalleability(left.type.malleability, right.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: orBMalleability(left.malleability, right.malleability),
         timelockInfo: combineOrTimelocks(left.timelockInfo, right.timelockInfo),
         keys: keysResult.keys,
         hasDuplicateKeys: keysResult.hasDuplicateKeys
@@ -585,17 +590,15 @@ const analyzeNode = (
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = orCCorrectness(
-        left.type.correctness,
-        right.type.correctness
+        left.correctness,
+        right.correctness
       );
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          orCMalleability(left.type.malleability, right.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: orCMalleability(left.malleability, right.malleability),
         timelockInfo: combineOrTimelocks(left.timelockInfo, right.timelockInfo),
         keys: keysResult.keys,
         hasDuplicateKeys: keysResult.hasDuplicateKeys
@@ -607,17 +610,15 @@ const analyzeNode = (
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = orDCorrectness(
-        left.type.correctness,
-        right.type.correctness
+        left.correctness,
+        right.correctness
       );
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          orDMalleability(left.type.malleability, right.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: orDMalleability(left.malleability, right.malleability),
         timelockInfo: combineOrTimelocks(left.timelockInfo, right.timelockInfo),
         keys: keysResult.keys,
         hasDuplicateKeys: keysResult.hasDuplicateKeys
@@ -629,17 +630,15 @@ const analyzeNode = (
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = orICorrectness(
-        left.type.correctness,
-        right.type.correctness
+        left.correctness,
+        right.correctness
       );
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          orIMalleability(left.type.malleability, right.type.malleability)
-        ),
+        correctness: correctnessResult.correctness,
+        malleability: orIMalleability(left.malleability, right.malleability),
         timelockInfo: combineOrTimelocks(left.timelockInfo, right.timelockInfo),
         keys: keysResult.keys,
         hasDuplicateKeys: keysResult.hasDuplicateKeys
@@ -653,9 +652,9 @@ const analyzeNode = (
       if (!mid.valid) return mid;
       if (!right.valid) return right;
       const correctnessResult = andOrCorrectness(
-        left.type.correctness,
-        mid.type.correctness,
-        right.type.correctness
+        left.correctness,
+        mid.correctness,
+        right.correctness
       );
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
@@ -666,13 +665,11 @@ const analyzeNode = (
         right.timelockInfo
       );
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          andOrMalleability(
-            left.type.malleability,
-            mid.type.malleability,
-            right.type.malleability
-          )
+        correctness: correctnessResult.correctness,
+        malleability: andOrMalleability(
+          left.malleability,
+          mid.malleability,
+          right.malleability
         ),
         timelockInfo: combinedTimelocks,
         keys: allKeys.keys,
@@ -692,7 +689,7 @@ const analyzeNode = (
       const validSubs = subs as ValidAnalysisResult[];
       const correctnessResult = threshCorrectness(
         k,
-        validSubs.map(sub => sub.type.correctness)
+        validSubs.map(sub => sub.correctness)
       );
       if (!correctnessResult.ok)
         return makeInvalidResult(correctnessResult.error);
@@ -705,12 +702,10 @@ const analyzeNode = (
         { keys: new Set<string>(), hasDuplicateKeys: false }
       );
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          thresholdMalleability(
-            k,
-            validSubs.map(sub => sub.type.malleability)
-          )
+        correctness: correctnessResult.correctness,
+        malleability: thresholdMalleability(
+          k,
+          validSubs.map(sub => sub.malleability)
         ),
         timelockInfo: timelocks,
         keys: mergedKeys.keys,
@@ -746,19 +741,19 @@ export const analyzeParsedNode = (
     };
   }
 
-  const needsSignature = analysis.type.malleability.signed;
-  const nonMalleable = analysis.type.malleability.nonMalleable;
+  const needsSignature = analysis.malleability.signed;
+  const nonMalleable = analysis.malleability.nonMalleable;
   const timelockMix = analysis.timelockInfo.contains_combination;
   const hasDuplicateKeys = analysis.hasDuplicateKeys;
   const issanesublevel =
     needsSignature && nonMalleable && !timelockMix && !hasDuplicateKeys;
-  const issane = issanesublevel && analysis.type.correctness.basicType === 'B';
+  const issane = issanesublevel && analysis.correctness.basicType === 'B';
   let error: string | null = null;
   if (!needsSignature) error = 'SiglessBranch';
   else if (!nonMalleable) error = 'Malleable';
   else if (hasDuplicateKeys) error = 'RepeatedPubkeys';
   else if (timelockMix) error = 'HeightTimelockCombination';
-  else if (analysis.type.correctness.basicType !== 'B') error = 'NonTopLevel';
+  else if (analysis.correctness.basicType !== 'B') error = 'NonTopLevel';
 
   return {
     issane,
