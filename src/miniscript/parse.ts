@@ -48,15 +48,25 @@ const splitArgs = (
   let level = 0;
   let last = 0;
   for (let i = 0; i < argsString.length; i++) {
-    if (argsString[i] === '(') level++;
-    if (argsString[i] === ')') level--;
-    if (level === 0 && argsString[i] === ',') {
+    const char = argsString[i];
+    if (!char) continue;
+    if (char === '(') level++;
+    if (char === ')') level--;
+    if (level === 0 && char === ',') {
       result.push(argsString.substring(last, i));
       last = i + 1;
     }
   }
   result.push(argsString.substring(last));
   return result.map(arg => arg.trim()).filter(Boolean);
+};
+
+const getArg = (args: string[], index: number): string => {
+  const arg = args[index];
+  if (arg === undefined) {
+    throw new Error('Invalid miniscript arguments');
+  }
+  return arg;
 };
 
 /** Apply a wrapper to a parsed node, expanding syntactic sugar. */
@@ -104,30 +114,31 @@ const parseBase = (
     case 'pk': {
       if (args.length !== 1)
         throw new Error(`Invalid pk() args: ${expression}`);
-      return wrapNode('c', { type: 'pk_k', key: args[0] });
+      const key = getArg(args, 0);
+      return wrapNode('c', { type: 'pk_k', key });
     }
     case 'pkh': {
       if (args.length !== 1)
         throw new Error(`Invalid pkh() args: ${expression}`);
-      return wrapNode('c', { type: 'pk_h', key: args[0] });
+      const key = getArg(args, 0);
+      return wrapNode('c', { type: 'pk_h', key });
     }
     case 'and_n': {
       if (args.length !== 2)
         throw new Error(`Invalid and_n() args: ${expression}`);
+      const left = getArg(args, 0);
+      const right = getArg(args, 1);
       return {
         type: 'andor',
-        args: [
-          parseExpression(args[0]),
-          parseExpression(args[1]),
-          { type: '0' }
-        ]
+        args: [parseExpression(left), parseExpression(right), { type: '0' }]
       };
     }
     case 'pk_k':
     case 'pk_h': {
       if (args.length !== 1)
         throw new Error(`Invalid ${name}() args: ${expression}`);
-      return { type: name, key: args[0] };
+      const key = getArg(args, 0);
+      return { type: name, key };
     }
     case 'older':
     case 'after':
@@ -137,20 +148,23 @@ const parseBase = (
     case 'hash160': {
       if (args.length !== 1)
         throw new Error(`Invalid ${name}() args: ${expression}`);
-      return { type: name, value: args[0] };
+      const value = getArg(args, 0);
+      return { type: name, value };
     }
     case 'multi':
     case 'multi_a': {
       if (args.length < 2)
         throw new Error(`Invalid ${name}() args: ${expression}`);
-      return { type: name, k: args[0], keys: args.slice(1) };
+      const k = getArg(args, 0);
+      return { type: name, k, keys: args.slice(1) };
     }
     case 'thresh': {
       if (args.length < 2)
         throw new Error(`Invalid thresh() args: ${expression}`);
+      const k = getArg(args, 0);
       return {
         type: 'thresh',
-        k: args[0],
+        k,
         subs: args.slice(1).map(parseExpression)
       };
     }
@@ -162,20 +176,25 @@ const parseBase = (
     case 'or_i': {
       if (args.length !== 2)
         throw new Error(`Invalid ${name}() args: ${expression}`);
+      const left = getArg(args, 0);
+      const right = getArg(args, 1);
       return {
         type: name,
-        args: [parseExpression(args[0]), parseExpression(args[1])]
+        args: [parseExpression(left), parseExpression(right)]
       };
     }
     case 'andor': {
       if (args.length !== 3)
         throw new Error(`Invalid andor() args: ${expression}`);
+      const left = getArg(args, 0);
+      const mid = getArg(args, 1);
+      const right = getArg(args, 2);
       return {
         type: 'andor',
         args: [
-          parseExpression(args[0]),
-          parseExpression(args[1]),
-          parseExpression(args[2])
+          parseExpression(left),
+          parseExpression(mid),
+          parseExpression(right)
         ]
       };
     }
@@ -198,6 +217,9 @@ export const parseExpression = (
     const match = expression.match(/^([a-z]+):/);
     if (!match) break;
     const prefix = match[1];
+    if (!prefix) {
+      throw new Error(`Invalid wrapper prefix: ${expression}`);
+    }
     if (
       ![...prefix].every(char =>
         allowedWrapperLetterSet.has(char as WrapperLetter)
@@ -211,7 +233,11 @@ export const parseExpression = (
 
   let node = parseBase(expression);
   for (let i = wrapperLetters.length - 1; i >= 0; i--) {
-    node = wrapNode(wrapperLetters[i], node);
+    const wrapperLetter = wrapperLetters[i];
+    if (!wrapperLetter) {
+      throw new Error('Invalid wrapper sequence');
+    }
+    node = wrapNode(wrapperLetter, node);
   }
   return node;
 };
