@@ -1,7 +1,14 @@
 {
   "name": "@bitcoinerlab/miniscript",
+  "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a Miniscript compiler, as well as a novel Satisfier for generating expressive witness scripts.",
+  "homepage": "https://bitcoinerlab.com/modules/miniscript",
+  "version": "2.0.0",
   "author": "Jose-Luis Landabaso <landabaso@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitcoinerlab/miniscript.git"
+  },
   "keywords": [
     "miniscript",
     "satisfier",
@@ -10,46 +17,36 @@
     "asm",
     "descriptors"
   ],
-  "homepage": "https://bitcoinerlab.com/modules/miniscript",
-  "version": "1.4.3",
-  "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a Policy and Miniscript compiler, as well as a novel Satisfier for generating expressive witness scripts.",
+  "bugs": {
+    "url": "https://github.com/bitcoinerlab/miniscript/issues"
+  },
   "main": "dist/index.js",
-  "types": "types/index.d.ts",
+  "types": "dist/index.d.ts",
+  "prettier": "@bitcoinerlab/configs/prettierConfig.json",
+  "eslintConfig": {
+    "extends": "./node_modules/@bitcoinerlab/configs/eslintConfig"
+  },
+  "jest": {
+    "preset": "@bitcoinerlab/configs"
+  },
   "scripts": {
-    "build": "rollup -c --bundleConfigAsCjs",
-    "build:prod": "NODE_ENV=production rollup -c --bundleConfigAsCjs",
-    "prepublishOnly": "npm test",
-    "test": "npm run build:prod && jest",
-    "example": "node ./example.js",
-    "docs": "typedoc --options ./node_modules/@bitcoinerlab/configs/js_typedoc.json",
-    "webdocs": "typedoc --options ./node_modules/@bitcoinerlab/configs/js_webtypedoc.json"
+    "webdocs": "typedoc --options ./node_modules/@bitcoinerlab/configs/webtypedoc.json",
+    "docs": "typedoc --options ./node_modules/@bitcoinerlab/configs/typedoc.json",
+    "build:src": "tsc --project ./node_modules/@bitcoinerlab/configs/tsconfig.src.json",
+    "build:test": "tsc --project ./node_modules/@bitcoinerlab/configs/tsconfig.test.json",
+    "build": "npm run build:src && npm run build:test",
+    "lint": "./node_modules/@bitcoinerlab/configs/scripts/lint.sh",
+    "test:unit": "jest",
+    "test": "npm run lint && npm run build && npm run test:unit",
+    "prepublishOnly": "npm test"
   },
-  "COMMENT_babel": "Babel plugins are are only needed for the jest testing environment. Jest needs to use commonjs. Also, jest cannot handle ESM converted code, since it uses 'import.meta.url'. See src/bindings.js. babel-plugin-transform-import-meta fixes it.",
-  "babel": {
-    "env": {
-      "test": {
-        "plugins": [
-          "@babel/plugin-transform-modules-commonjs",
-          "babel-plugin-transform-import-meta"
-        ]
-      }
-    }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/bitcoinerlab/miniscript.git"
-  },
-  "devDependencies": {
-    "@babel/plugin-transform-modules-commonjs": "^7.19.6",
-    "@bitcoinerlab/configs": "^2.0.0",
-    "@rollup/plugin-commonjs": "^29.0.0",
-    "babel-plugin-transform-import-meta": "^2.2.0",
-    "rollup": "^3.29.5"
-  },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "bip68": "^1.0.4"
   },
-  "bugs": {
-    "url": "https://github.com/bitcoinerlab/miniscript/issues"
+  "devDependencies": {
+    "@bitcoinerlab/configs": "^2.0.0"
   }
 }
