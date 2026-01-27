@@ -103,11 +103,11 @@ type AnalyzeContext = {
   tapscript: boolean;
 };
 
-type AnalyzeOptions = {
+export type AnalyzeOptions = {
   tapscript?: boolean;
 };
 
-type ParsedAnalysisResult = {
+export type ParsedAnalysisResult = {
   issane: boolean;
   issanesublevel: boolean;
   valid: boolean;

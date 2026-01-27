@@ -3,23 +3,34 @@
 
 // Core Miniscript compiler entry point.
 // See ANALYZER.md for AST and analysis details.
-import { parseExpression } from './miniscript/parse.js';
-import { compileNode } from './miniscript/compile.js';
-import { analyzeMiniscript, analyzeParsedNode } from './miniscript/analyze.js';
+import { parseExpression } from './miniscript/parse';
+import { compileNode } from './miniscript/compile';
+import {
+  analyzeMiniscript,
+  analyzeParsedNode,
+  type AnalyzeOptions
+} from './miniscript/analyze';
 
-const cleanAsm = asm =>
+export type CompileResult = {
+  asm: string;
+  issane: boolean;
+  issanesublevel: boolean;
+  error: string | null;
+};
+
+const cleanAsm = (asm: string): string =>
   asm
     .trim()
     .replace(/\n/g, ' ')
     .replace(/ +(?= )/g, '');
 
-/**
- * Compile a Miniscript expression to ASM and return sanity flags.
- * @param {string} miniscript
- * @param {{tapscript?: boolean}} [options]
- * @returns {{asm: string, issane: boolean, issanesublevel: boolean, error?: string | null}}
- */
-export const compileMiniscript = (miniscript, options = {}) => {
+/** Compile a Miniscript expression to ASM and return sanity flags. */
+export const compileMiniscript = (
+  /** Raw miniscript expression. */
+  miniscript: string,
+  /** Analysis options. */
+  options: AnalyzeOptions = {}
+): CompileResult => {
   const node = parseExpression(miniscript);
   const asm = compileNode(node, false).join(' ');
   const analysis = analyzeParsedNode(node, options);
