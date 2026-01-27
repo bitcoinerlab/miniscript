@@ -6,140 +6,147 @@
  * See ANALYZER.md "Correctness vs malleability" for details.
  */
 
-/**
- * @typedef {Object} Correctness
- * @property {string} basicType
- * @property {boolean} zeroArg
- * @property {boolean} oneArg
- * @property {boolean} nonZero
- * @property {boolean} dissatisfiable
- * @property {boolean} unit
- */
+/** Basic miniscript output categories. */
+export type BasicType = 'B' | 'K' | 'V' | 'W';
 
-export const BasicType = {
-  B: 'B',
-  K: 'K',
-  V: 'V',
-  W: 'W'
+/** Correctness flags for a miniscript fragment. */
+export type Correctness = {
+  basicType: BasicType;
+  zeroArg: boolean;
+  oneArg: boolean;
+  nonZero: boolean;
+  dissatisfiable: boolean;
+  unit: boolean;
 };
 
-// Correctness helpers return { ok, correctness, error? }.
+/** Error codes returned by correctness checks. */
+export type CorrectnessError =
+  | 'ChildBase1'
+  | 'ChildBase2'
+  | 'ChildBase3'
+  | 'SwapNonOne'
+  | 'NonZeroDupIf'
+  | 'NonZeroZero'
+  | 'LeftNotDissatisfiable'
+  | 'RightNotDissatisfiable'
+  | 'LeftNotUnit'
+  | 'ThresholdBase'
+  | 'ThresholdNonUnit'
+  | 'ThresholdDissat';
+
+/** Discriminated result of a correctness check. */
+export type CorrectnessResult =
+  | { ok: true; correctness: Correctness }
+  | { ok: false; error: CorrectnessError };
+
+// Correctness helpers return CorrectnessResult.
 // Leaf fragments are always ok and return their basic type directly.
-export const trueCorrectness = () =>
-  ({
-    ok: true,
-    correctness: {
-      basicType: BasicType.B,
-      zeroArg: true,
-      oneArg: false,
-      nonZero: false,
-      dissatisfiable: false,
-      unit: true
-    }
-  });
+export const trueCorrectness = (): CorrectnessResult => ({
+  ok: true,
+  correctness: {
+    basicType: 'B',
+    zeroArg: true,
+    oneArg: false,
+    nonZero: false,
+    dissatisfiable: false,
+    unit: true
+  }
+});
 
-export const falseCorrectness = () =>
-  ({
-    ok: true,
-    correctness: {
-      basicType: BasicType.B,
-      zeroArg: true,
-      oneArg: false,
-      nonZero: false,
-      dissatisfiable: true,
-      unit: true
-    }
-  });
+export const falseCorrectness = (): CorrectnessResult => ({
+  ok: true,
+  correctness: {
+    basicType: 'B',
+    zeroArg: true,
+    oneArg: false,
+    nonZero: false,
+    dissatisfiable: true,
+    unit: true
+  }
+});
 
-export const pkKCorrectness = () =>
-  ({
-    ok: true,
-    correctness: {
-      basicType: BasicType.K,
-      zeroArg: false,
-      oneArg: true,
-      nonZero: true,
-      dissatisfiable: true,
-      unit: true
-    }
-  });
+export const pkKCorrectness = (): CorrectnessResult => ({
+  ok: true,
+  correctness: {
+    basicType: 'K',
+    zeroArg: false,
+    oneArg: true,
+    nonZero: true,
+    dissatisfiable: true,
+    unit: true
+  }
+});
 
-export const pkHCorrectness = () =>
-  ({
-    ok: true,
-    correctness: {
-      basicType: BasicType.K,
-      zeroArg: false,
-      oneArg: false,
-      nonZero: true,
-      dissatisfiable: true,
-      unit: true
-    }
-  });
+export const pkHCorrectness = (): CorrectnessResult => ({
+  ok: true,
+  correctness: {
+    basicType: 'K',
+    zeroArg: false,
+    oneArg: false,
+    nonZero: true,
+    dissatisfiable: true,
+    unit: true
+  }
+});
 
-export const multiCorrectness = () =>
-  ({
-    ok: true,
-    correctness: {
-      basicType: BasicType.B,
-      zeroArg: false,
-      oneArg: false,
-      nonZero: true,
-      dissatisfiable: true,
-      unit: true
-    }
-  });
+export const multiCorrectness = (): CorrectnessResult => ({
+  ok: true,
+  correctness: {
+    basicType: 'B',
+    zeroArg: false,
+    oneArg: false,
+    nonZero: true,
+    dissatisfiable: true,
+    unit: true
+  }
+});
 
-export const multiACorrectness = () =>
-  ({
-    ok: true,
-    correctness: {
-      basicType: BasicType.B,
-      zeroArg: false,
-      oneArg: false,
-      nonZero: false,
-      dissatisfiable: true,
-      unit: true
-    }
-  });
+export const multiACorrectness = (): CorrectnessResult => ({
+  ok: true,
+  correctness: {
+    basicType: 'B',
+    zeroArg: false,
+    oneArg: false,
+    nonZero: false,
+    dissatisfiable: true,
+    unit: true
+  }
+});
 
-export const hashCorrectness = () =>
-  ({
-    ok: true,
-    correctness: {
-      basicType: BasicType.B,
-      zeroArg: false,
-      oneArg: true,
-      nonZero: true,
-      dissatisfiable: true,
-      unit: true
-    }
-  });
+export const hashCorrectness = (): CorrectnessResult => ({
+  ok: true,
+  correctness: {
+    basicType: 'B',
+    zeroArg: false,
+    oneArg: true,
+    nonZero: true,
+    dissatisfiable: true,
+    unit: true
+  }
+});
 
-export const timeCorrectness = () =>
-  ({
-    ok: true,
-    correctness: {
-      basicType: BasicType.B,
-      zeroArg: true,
-      oneArg: false,
-      nonZero: false,
-      dissatisfiable: false,
-      unit: false
-    }
-  });
+export const timeCorrectness = (): CorrectnessResult => ({
+  ok: true,
+  correctness: {
+    basicType: 'B',
+    zeroArg: true,
+    oneArg: false,
+    nonZero: false,
+    dissatisfiable: false,
+    unit: false
+  }
+});
 
-/**
- * Apply the `a:` wrapper to a correctness type.
- * @param {Correctness} correctness
- * @returns {{ok: boolean, correctness?: Correctness, error?: string}}
- */
-export const altCorrectness = correctness => {
-  if (correctness.basicType !== BasicType.B) return { ok: false, error: 'ChildBase1' };
+/** Apply the `a:` wrapper to a correctness type. */
+export const altCorrectness = (
+  /** Child correctness to wrap. */
+  correctness: Correctness
+): CorrectnessResult => {
+  if (correctness.basicType !== 'B') return { ok: false, error: 'ChildBase1' };
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.W,
+      basicType: 'W',
       zeroArg: correctness.zeroArg,
       oneArg: correctness.oneArg,
       nonZero: correctness.nonZero,
@@ -149,18 +156,17 @@ export const altCorrectness = correctness => {
   };
 };
 
-/**
- * Apply the `s:` wrapper to a correctness type.
- * @param {Correctness} correctness
- * @returns {{ok: boolean, correctness?: Correctness, error?: string}}
- */
-export const swapCorrectness = correctness => {
-  if (correctness.basicType !== BasicType.B) return { ok: false, error: 'ChildBase1' };
+/** Apply the `s:` wrapper to a correctness type. */
+export const swapCorrectness = (
+  /** Child correctness to wrap. */
+  correctness: Correctness
+): CorrectnessResult => {
+  if (correctness.basicType !== 'B') return { ok: false, error: 'ChildBase1' };
   if (!correctness.oneArg) return { ok: false, error: 'SwapNonOne' };
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.W,
+      basicType: 'W',
       zeroArg: correctness.zeroArg,
       oneArg: correctness.oneArg,
       nonZero: correctness.nonZero,
@@ -170,17 +176,16 @@ export const swapCorrectness = correctness => {
   };
 };
 
-/**
- * Apply the `c:` wrapper to a correctness type.
- * @param {Correctness} correctness
- * @returns {{ok: boolean, correctness?: Correctness, error?: string}}
- */
-export const checkCorrectness = correctness => {
-  if (correctness.basicType !== BasicType.K) return { ok: false, error: 'ChildBase1' };
+/** Apply the `c:` wrapper to a correctness type. */
+export const checkCorrectness = (
+  /** Child correctness to wrap. */
+  correctness: Correctness
+): CorrectnessResult => {
+  if (correctness.basicType !== 'K') return { ok: false, error: 'ChildBase1' };
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.B,
+      basicType: 'B',
       zeroArg: correctness.zeroArg,
       oneArg: correctness.oneArg,
       nonZero: correctness.nonZero,
@@ -190,13 +195,17 @@ export const checkCorrectness = correctness => {
   };
 };
 
-export const dupIfWshCorrectness = correctness => {
-  if (correctness.basicType !== BasicType.V) return { ok: false, error: 'ChildBase1' };
+/** Apply the `d:` wrapper to a correctness type for Segwit v0. */
+export const dupIfWshCorrectness = (
+  /** Child correctness to wrap. */
+  correctness: Correctness
+): CorrectnessResult => {
+  if (correctness.basicType !== 'V') return { ok: false, error: 'ChildBase1' };
   if (!correctness.zeroArg) return { ok: false, error: 'NonZeroDupIf' };
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.B,
+      basicType: 'B',
       zeroArg: false,
       oneArg: true,
       nonZero: true,
@@ -206,13 +215,17 @@ export const dupIfWshCorrectness = correctness => {
   };
 };
 
-export const dupIfTapscriptCorrectness = correctness => {
-  if (correctness.basicType !== BasicType.V) return { ok: false, error: 'ChildBase1' };
+/** Apply the `d:` wrapper to a correctness type for tapscript. */
+export const dupIfTapscriptCorrectness = (
+  /** Child correctness to wrap. */
+  correctness: Correctness
+): CorrectnessResult => {
+  if (correctness.basicType !== 'V') return { ok: false, error: 'ChildBase1' };
   if (!correctness.zeroArg) return { ok: false, error: 'NonZeroDupIf' };
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.B,
+      basicType: 'B',
       zeroArg: false,
       oneArg: true,
       nonZero: true,
@@ -222,17 +235,16 @@ export const dupIfTapscriptCorrectness = correctness => {
   };
 };
 
-/**
- * Apply the `v:` wrapper to a correctness type.
- * @param {Correctness} correctness
- * @returns {{ok: boolean, correctness?: Correctness, error?: string}}
- */
-export const verifyCorrectness = correctness => {
-  if (correctness.basicType !== BasicType.B) return { ok: false, error: 'ChildBase1' };
+/** Apply the `v:` wrapper to a correctness type. */
+export const verifyCorrectness = (
+  /** Child correctness to wrap. */
+  correctness: Correctness
+): CorrectnessResult => {
+  if (correctness.basicType !== 'B') return { ok: false, error: 'ChildBase1' };
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.V,
+      basicType: 'V',
       zeroArg: correctness.zeroArg,
       oneArg: correctness.oneArg,
       nonZero: correctness.nonZero,
@@ -242,18 +254,17 @@ export const verifyCorrectness = correctness => {
   };
 };
 
-/**
- * Apply the `j:` wrapper to a correctness type.
- * @param {Correctness} correctness
- * @returns {{ok: boolean, correctness?: Correctness, error?: string}}
- */
-export const nonZeroCorrectness = correctness => {
+/** Apply the `j:` wrapper to a correctness type. */
+export const nonZeroCorrectness = (
+  /** Child correctness to wrap. */
+  correctness: Correctness
+): CorrectnessResult => {
   if (!correctness.nonZero) return { ok: false, error: 'NonZeroZero' };
-  if (correctness.basicType !== BasicType.B) return { ok: false, error: 'ChildBase1' };
+  if (correctness.basicType !== 'B') return { ok: false, error: 'ChildBase1' };
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.B,
+      basicType: 'B',
       zeroArg: false,
       oneArg: correctness.oneArg,
       nonZero: true,
@@ -263,17 +274,16 @@ export const nonZeroCorrectness = correctness => {
   };
 };
 
-/**
- * Apply the `n:` wrapper to a correctness type.
- * @param {Correctness} correctness
- * @returns {{ok: boolean, correctness?: Correctness, error?: string}}
- */
-export const zeroNotEqualCorrectness = correctness => {
-  if (correctness.basicType !== BasicType.B) return { ok: false, error: 'ChildBase1' };
+/** Apply the `n:` wrapper to a correctness type. */
+export const zeroNotEqualCorrectness = (
+  /** Child correctness to wrap. */
+  correctness: Correctness
+): CorrectnessResult => {
+  if (correctness.basicType !== 'B') return { ok: false, error: 'ChildBase1' };
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.B,
+      basicType: 'B',
       zeroArg: correctness.zeroArg,
       oneArg: correctness.oneArg,
       nonZero: correctness.nonZero,
@@ -283,13 +293,14 @@ export const zeroNotEqualCorrectness = correctness => {
   };
 };
 
-/**
- * Correctness rules for and_b(X,Y).
- * @param {Correctness} left
- * @param {Correctness} right
- */
-export const andBCorrectness = (left, right) => {
-  if (left.basicType !== BasicType.B || right.basicType !== BasicType.W) {
+/** Correctness rules for and_b(X,Y). */
+export const andBCorrectness = (
+  /** Left child correctness. */
+  left: Correctness,
+  /** Right child correctness. */
+  right: Correctness
+): CorrectnessResult => {
+  if (left.basicType !== 'B' || right.basicType !== 'W') {
     return { ok: false, error: 'ChildBase2' };
   }
   const zeroArg = left.zeroArg && right.zeroArg;
@@ -299,7 +310,7 @@ export const andBCorrectness = (left, right) => {
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.B,
+      basicType: 'B',
       zeroArg,
       oneArg,
       nonZero,
@@ -309,16 +320,14 @@ export const andBCorrectness = (left, right) => {
   };
 };
 
-/**
- * Correctness rules for and_v(X,Y).
- * @param {Correctness} left
- * @param {Correctness} right
- */
-export const andVCorrectness = (left, right) => {
-  if (
-    left.basicType !== BasicType.V ||
-    ![BasicType.B, BasicType.K, BasicType.V].includes(right.basicType)
-  ) {
+/** Correctness rules for and_v(X,Y). */
+export const andVCorrectness = (
+  /** Left child correctness. */
+  left: Correctness,
+  /** Right child correctness. */
+  right: Correctness
+): CorrectnessResult => {
+  if (left.basicType !== 'V' || !['B', 'K', 'V'].includes(right.basicType)) {
     return { ok: false, error: 'ChildBase2' };
   }
   const zeroArg = left.zeroArg && right.zeroArg;
@@ -338,15 +347,18 @@ export const andVCorrectness = (left, right) => {
   };
 };
 
-/**
- * Correctness rules for or_b(X,Y).
- * @param {Correctness} left
- * @param {Correctness} right
- */
-export const orBCorrectness = (left, right) => {
-  if (!left.dissatisfiable) return { ok: false, error: 'LeftNotDissatisfiable' };
-  if (!right.dissatisfiable) return { ok: false, error: 'RightNotDissatisfiable' };
-  if (left.basicType !== BasicType.B || right.basicType !== BasicType.W) {
+/** Correctness rules for or_b(X,Y). */
+export const orBCorrectness = (
+  /** Left child correctness. */
+  left: Correctness,
+  /** Right child correctness. */
+  right: Correctness
+): CorrectnessResult => {
+  if (!left.dissatisfiable)
+    return { ok: false, error: 'LeftNotDissatisfiable' };
+  if (!right.dissatisfiable)
+    return { ok: false, error: 'RightNotDissatisfiable' };
+  if (left.basicType !== 'B' || right.basicType !== 'W') {
     return { ok: false, error: 'ChildBase2' };
   }
   const zeroArg = left.zeroArg && right.zeroArg;
@@ -355,7 +367,7 @@ export const orBCorrectness = (left, right) => {
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.B,
+      basicType: 'B',
       zeroArg,
       oneArg,
       nonZero: false,
@@ -365,15 +377,17 @@ export const orBCorrectness = (left, right) => {
   };
 };
 
-/**
- * Correctness rules for or_d(X,Y).
- * @param {Correctness} left
- * @param {Correctness} right
- */
-export const orDCorrectness = (left, right) => {
-  if (!left.dissatisfiable) return { ok: false, error: 'LeftNotDissatisfiable' };
+/** Correctness rules for or_d(X,Y). */
+export const orDCorrectness = (
+  /** Left child correctness. */
+  left: Correctness,
+  /** Right child correctness. */
+  right: Correctness
+): CorrectnessResult => {
+  if (!left.dissatisfiable)
+    return { ok: false, error: 'LeftNotDissatisfiable' };
   if (!left.unit) return { ok: false, error: 'LeftNotUnit' };
-  if (left.basicType !== BasicType.B || right.basicType !== BasicType.B) {
+  if (left.basicType !== 'B' || right.basicType !== 'B') {
     return { ok: false, error: 'ChildBase2' };
   }
   const zeroArg = left.zeroArg && right.zeroArg;
@@ -381,7 +395,7 @@ export const orDCorrectness = (left, right) => {
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.B,
+      basicType: 'B',
       zeroArg,
       oneArg,
       nonZero: false,
@@ -391,15 +405,17 @@ export const orDCorrectness = (left, right) => {
   };
 };
 
-/**
- * Correctness rules for or_c(X,Y).
- * @param {Correctness} left
- * @param {Correctness} right
- */
-export const orCCorrectness = (left, right) => {
-  if (!left.dissatisfiable) return { ok: false, error: 'LeftNotDissatisfiable' };
+/** Correctness rules for or_c(X,Y). */
+export const orCCorrectness = (
+  /** Left child correctness. */
+  left: Correctness,
+  /** Right child correctness. */
+  right: Correctness
+): CorrectnessResult => {
+  if (!left.dissatisfiable)
+    return { ok: false, error: 'LeftNotDissatisfiable' };
   if (!left.unit) return { ok: false, error: 'LeftNotUnit' };
-  if (left.basicType !== BasicType.B || right.basicType !== BasicType.V) {
+  if (left.basicType !== 'B' || right.basicType !== 'V') {
     return { ok: false, error: 'ChildBase2' };
   }
   const zeroArg = left.zeroArg && right.zeroArg;
@@ -407,7 +423,7 @@ export const orCCorrectness = (left, right) => {
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.V,
+      basicType: 'V',
       zeroArg,
       oneArg,
       nonZero: false,
@@ -417,20 +433,15 @@ export const orCCorrectness = (left, right) => {
   };
 };
 
-/**
- * Correctness rules for or_i(X,Y).
- * @param {Correctness} left
- * @param {Correctness} right
- */
-export const orICorrectness = (left, right) => {
+/** Correctness rules for or_i(X,Y). */
+export const orICorrectness = (
+  /** Left child correctness. */
+  left: Correctness,
+  /** Right child correctness. */
+  right: Correctness
+): CorrectnessResult => {
   const basePair = `${left.basicType}:${right.basicType}`;
-  if (
-    ![
-      `${BasicType.B}:${BasicType.B}`,
-      `${BasicType.V}:${BasicType.V}`,
-      `${BasicType.K}:${BasicType.K}`
-    ].includes(basePair)
-  ) {
+  if (!['B:B', 'V:V', 'K:K'].includes(basePair)) {
     return { ok: false, error: 'ChildBase2' };
   }
   return {
@@ -446,23 +457,20 @@ export const orICorrectness = (left, right) => {
   };
 };
 
-/**
- * Correctness rules for andor(X,Y,Z).
- * @param {Correctness} left
- * @param {Correctness} mid
- * @param {Correctness} right
- */
-export const andOrCorrectness = (left, mid, right) => {
-  if (!left.dissatisfiable) return { ok: false, error: 'LeftNotDissatisfiable' };
+/** Correctness rules for andor(X,Y,Z). */
+export const andOrCorrectness = (
+  /** Left child correctness. */
+  left: Correctness,
+  /** Middle child correctness. */
+  mid: Correctness,
+  /** Right child correctness. */
+  right: Correctness
+): CorrectnessResult => {
+  if (!left.dissatisfiable)
+    return { ok: false, error: 'LeftNotDissatisfiable' };
   if (!left.unit) return { ok: false, error: 'LeftNotUnit' };
   const baseTriplet = `${left.basicType}:${mid.basicType}:${right.basicType}`;
-  if (
-    ![
-      `${BasicType.B}:${BasicType.B}:${BasicType.B}`,
-      `${BasicType.B}:${BasicType.K}:${BasicType.K}`,
-      `${BasicType.B}:${BasicType.V}:${BasicType.V}`
-    ].includes(baseTriplet)
-  ) {
+  if (!['B:B:B', 'B:K:K', 'B:V:V'].includes(baseTriplet)) {
     return { ok: false, error: 'ChildBase3' };
   }
   const zeroArg = left.zeroArg && mid.zeroArg && right.zeroArg;
@@ -482,18 +490,20 @@ export const andOrCorrectness = (left, mid, right) => {
   };
 };
 
-/**
- * Correctness rules for thresh(k, subs...).
- * @param {number} k
- * @param {Correctness[]} subs
- */
-export const threshCorrectness = (k, subs) => {
+/** Correctness rules for thresh(k, subs...). */
+export const threshCorrectness = (
+  /** Threshold to satisfy. */
+  k: number,
+  /** Child correctness list. */
+  subs: Correctness[]
+): CorrectnessResult => {
+  void k;
   for (let i = 0; i < subs.length; i++) {
     const subtype = subs[i];
-    if (i === 0 && subtype.basicType !== BasicType.B) {
+    if (i === 0 && subtype.basicType !== 'B') {
       return { ok: false, error: 'ThresholdBase' };
     }
-    if (i !== 0 && subtype.basicType !== BasicType.W) {
+    if (i !== 0 && subtype.basicType !== 'W') {
       return { ok: false, error: 'ThresholdBase' };
     }
     if (!subtype.unit) {
@@ -510,7 +520,7 @@ export const threshCorrectness = (k, subs) => {
   return {
     ok: true,
     correctness: {
-      basicType: BasicType.B,
+      basicType: 'B',
       zeroArg,
       oneArg,
       nonZero: false,
