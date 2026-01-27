@@ -39,9 +39,8 @@ Policy compilation is provided by the companion package
 which bundles the reference C++ compiler via Emscripten.
 
 ```javascript
-const { compilePolicy, ready } = require('@bitcoinerlab/miniscript-policies');
+const { compilePolicy } = require('@bitcoinerlab/miniscript-policies');
 
-await ready;
 const policy = 'or(and(pk(A),older(8640)),pk(B))';
 const { miniscript, asm, issane } = compilePolicy(policy);
 ```

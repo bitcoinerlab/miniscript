@@ -1,8 +1,8 @@
 // Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
 // Distributed under the MIT software license
 
-import { satisfier, ready } from '../dist/index.js';
-import { primitives, timeLocks, other, knowns } from './fixtures.js';
+import { satisfier } from '../dist/index';
+import { primitives, timeLocks, other, knowns } from './fixtures';
 
 const createGroupTest = (description, fixtures) =>
   describe(description, () => {
@@ -45,10 +45,6 @@ const createGroupTest = (description, fixtures) =>
   });
 
 describe('Satisfier', () => {
-  beforeAll(async () => {
-    await ready;
-  });
-
   createGroupTest('Timelocks', timeLocks);
   createGroupTest('Primitives', primitives);
   createGroupTest('Other', other);
