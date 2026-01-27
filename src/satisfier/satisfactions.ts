@@ -1,7 +1,22 @@
 // Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
 // Distributed under the MIT software license
 
-import { maxLock, ABSOLUTE, RELATIVE } from './maxLock.js';
+import { maxLock } from './maxLock';
+
+export type Solution = {
+  asm: string;
+  nSequence?: number | string;
+  nLockTime?: number | string;
+};
+
+export type Satisfactions = {
+  sats?: Solution[];
+  dsats?: Solution[];
+};
+
+export type SatisfactionsMap = Record<string, Satisfactions>;
+
+type SatisfactionKey = 'sats' | 'dsats';
 
 /**
  * Given a `solutionTemplate`, such as "0 dsat(X) sat(Y) 1 sat(Z)", and given the
@@ -49,18 +64,21 @@ import { maxLock, ABSOLUTE, RELATIVE } from './maxLock.js';
  *                     ...}
  * ```
  *
- * @param {string} solutionTemplate - a string containing sat or dsat expressions such as: "0 dsat(X) sat(Y) 1 sat(Z)"
- * @param {Object} satisfactionsMap - an object mapping the arguments for the sat and dsat expressions
- * in `solutionTemplate` (f.ex: `X, Y, Z`) to their {@link Satisfactions}.
- * @param {Satisfactions} [satisfactionsMap.X] - The satisfactions for `X`
- * @param {Satisfactions} [satisfactionsMap.Y] - The satisfactions for `Y`
- * @param {Satisfactions} [satisfactionsMap.Z] - The satisfactions for `Z`
- * @param {Satisfactions} [satisfactionsMap....] - The satisfactions for `...`
+ * For the example above, satisfactionsMap.X provides sats and dsats for X,
+ * satisfactionsMap.Y for Y, satisfactionsMap.Z for Z, and so on for any other
+ * placeholder used in the template.
  *
- * @returns {Solution[]} an array of solutions, containing the resulting witness, nSequence and nLockTime values, and whether the solution has a HASSIG marker or should be marked as "DONTUSE".
+ * Returns an array of Solution objects containing the combined witness asm and
+ * any accumulated nSequence and nLockTime values.
+ *
  */
 
-function combine(solutionTemplate, satisfactionsMap) {
+function combine(
+  /** A string containing sat or dsat expressions such as "0 dsat(X) sat(Y) 1 sat(Z)". */
+  solutionTemplate: string,
+  /** An object mapping the arguments in solutionTemplate to their satisfactions. */
+  satisfactionsMap: SatisfactionsMap
+): Solution[] {
   //First, break solutionTemplate into 3 parts:
   //  pre + curr + post,
   //where curr is the first sat(...)/dsat(...) in solutionTemplate.
@@ -72,12 +90,12 @@ function combine(solutionTemplate, satisfactionsMap) {
   //sat()/dsat() in *post*
 
   //regExp that matches the first dsat(...) or sat(...):
-  const reCurr = /d?sat\(([^\(]*)\)/;
+  const reCurr = /d?sat\(([^(]*)\)/;
   const currMatch = solutionTemplate.match(reCurr);
 
   if (currMatch && currMatch.length) {
     //The array of solutions to be computed and returned.
-    const solutions = [];
+    const solutions: Solution[] = [];
 
     //curr is the first d?sat() matched in solutionTemplate:
     const curr = currMatch[0];
@@ -91,13 +109,13 @@ function combine(solutionTemplate, satisfactionsMap) {
     //currArg = "X" for solutionTemplate "0 dsat(X) sat(Y) 1 sat(Z)"
     const currArg = currMatch[1];
     //currKey = "sats" or "dsats". "dsats" for the example above.
-    const currKey = curr[0] === 'd' ? 'dsats' : 'sats';
+    const currKey: SatisfactionKey = curr[0] === 'd' ? 'dsats' : 'sats';
 
     if (typeof satisfactionsMap[currArg] !== 'object')
       throw new Error(
         `satisfactionsMap does not provide sats/dsats solutions for argument ${currArg}, evaluating: ${solutionTemplate}`
       );
-    const currSolutions = satisfactionsMap[currArg][currKey] || [];
+    const currSolutions: Solution[] = satisfactionsMap[currArg][currKey] || [];
     for (const currSolution of currSolutions) {
       //Does *post* contain further sat() or dsat() expressions?
       if (post.match(reCurr)) {
@@ -109,12 +127,12 @@ function combine(solutionTemplate, satisfactionsMap) {
             nSequence: maxLock(
               currSolution.nSequence,
               postSolution.nSequence,
-              RELATIVE
+              'RELATIVE'
             ),
             nLockTime: maxLock(
               currSolution.nLockTime,
               postSolution.nLockTime,
-              ABSOLUTE
+              'ABSOLUTE'
             ),
             asm: `${pre}${currSolution.asm}${postSolution.asm}`
           });
@@ -139,47 +157,50 @@ function combine(solutionTemplate, satisfactionsMap) {
  * An object containing functions for generating Basic satisfaction and dissatisfaction sets for miniscripts.
  *
  * @see {@link https://bitcoin.sipa.be/miniscript/}
- * @typedef {Object} SatisfactionsMaker
  *
  */
 export const satisfactionsMaker = {
-  0: () => ({
+  0: (): Satisfactions => ({
     dsats: [{ asm: `` }]
   }),
-  1: () => ({
+  1: (): Satisfactions => ({
     sats: [{ asm: `` }]
   }),
-  pk_k: key => ({
+  pk_k: (key: string): Satisfactions => ({
     dsats: [{ asm: `0` }],
     sats: [{ asm: `<sig(${key})>` }]
   }),
-  pk_h: key => ({
+  pk_h: (key: string): Satisfactions => ({
     dsats: [{ asm: `0 <${key}>` }],
     sats: [{ asm: `<sig(${key})> <${key}>` }]
   }),
-  older: n => ({
+  older: (n: string | number): Satisfactions => ({
     sats: [{ asm: ``, nSequence: n }]
   }),
-  after: n => ({
+  after: (n: string | number): Satisfactions => ({
     sats: [{ asm: ``, nLockTime: n }]
   }),
-  sha256: h => ({
+  sha256: (h: string): Satisfactions => ({
     sats: [{ asm: `<sha256_preimage(${h})>` }],
     dsats: [{ asm: `<random_preimage()>` }]
   }),
-  ripemd160: h => ({
+  ripemd160: (h: string): Satisfactions => ({
     sats: [{ asm: `<ripemd160_preimage(${h})>` }],
     dsats: [{ asm: `<random_preimage()>` }]
   }),
-  hash256: h => ({
+  hash256: (h: string): Satisfactions => ({
     sats: [{ asm: `<hash256_preimage(${h})>` }],
     dsats: [{ asm: `<random_preimage()>` }]
   }),
-  hash160: h => ({
+  hash160: (h: string): Satisfactions => ({
     sats: [{ asm: `<hash160_preimage(${h})>` }],
     dsats: [{ asm: `<random_preimage()>` }]
   }),
-  andor: (X, Y, Z) => ({
+  andor: (
+    X: Satisfactions,
+    Y: Satisfactions,
+    Z: Satisfactions
+  ): Satisfactions => ({
     dsats: [
       ...combine(`dsat(Z) dsat(X)`, { X, Y, Z }),
       ...combine(`dsat(Y) sat(X)`, { X, Y, Z })
@@ -189,46 +210,40 @@ export const satisfactionsMaker = {
       ...combine('sat(Z) dsat(X)', { X, Y, Z })
     ]
   }),
-  and_v: (X, Y) => ({
+  and_v: (X: Satisfactions, Y: Satisfactions): Satisfactions => ({
     dsats: [...combine(`dsat(Y) sat(X)`, { X, Y })],
     sats: [...combine(`sat(Y) sat(X)`, { X, Y })]
   }),
-  and_b: (X, Y) => ({
+  and_b: (X: Satisfactions, Y: Satisfactions): Satisfactions => ({
     dsats: [
       ...combine(`dsat(Y) dsat(X)`, { X, Y }),
-      //https://bitcoin.sipa.be/miniscript/
-      //The non-canonical options for and_b, or_b, and thresh are always
-      //overcomplete (reason 3), so instead use DONTUSE there
       ...combine(`sat(Y) dsat(X)`, { X, Y }),
       ...combine(`dsat(Y) sat(X)`, { X, Y })
     ],
     sats: [...combine(`sat(Y) sat(X)`, { Y, X })]
   }),
-  or_b: (X, Z) => ({
+  or_b: (X: Satisfactions, Z: Satisfactions): Satisfactions => ({
     dsats: [...combine(`dsat(Z) dsat(X)`, { X, Z })],
     sats: [
       ...combine(`dsat(Z) sat(X)`, { X, Z }),
       ...combine(`sat(Z) dsat(X)`, { X, Z }),
-      //https://bitcoin.sipa.be/miniscript/
-      //The non-canonical options for and_b, or_b, and thresh are always
-      //overcomplete (reason 3), so instead use DONTUSE there
       ...combine(`sat(Z) sat(X)`, { X, Z })
     ]
   }),
-  or_c: (X, Z) => ({
+  or_c: (X: Satisfactions, Z: Satisfactions): Satisfactions => ({
     sats: [
       ...combine(`sat(X)`, { X, Z }),
       ...combine(`sat(Z) dsat(X)`, { X, Z })
     ]
   }),
-  or_d: (X, Z) => ({
+  or_d: (X: Satisfactions, Z: Satisfactions): Satisfactions => ({
     dsats: [...combine(`dsat(Z) dsat(X)`, { X, Z })],
     sats: [
       ...combine(`sat(X)`, { X, Z }),
       ...combine(`sat(Z) dsat(X)`, { X, Z })
     ]
   }),
-  or_i: (X, Z) => ({
+  or_i: (X: Satisfactions, Z: Satisfactions): Satisfactions => ({
     dsats: [
       ...combine(`dsat(X) 1`, { X, Z }),
       ...combine(`dsat(Z) 0`, { X, Z })
@@ -245,7 +260,10 @@ export const satisfactionsMaker = {
    *  it can be deduced by analyzing the script:
    *  thresh(k,X1,...,Xn)	[X1] [X2] ADD ... [Xn] ADD ... <k> EQUAL
    */
-  thresh: (k, ...satisfactionsArray) => {
+  thresh: (
+    k: string | number,
+    ...satisfactionsArray: Satisfactions[]
+  ): Satisfactions => {
     if (Number.isInteger(Number(k)) && Number(k) > 0) k = Number(k);
     else throw new Error(`k must be positive number: ${k}`);
 
@@ -253,14 +271,14 @@ export const satisfactionsMaker = {
     //and multi) into an object.
     //For example, if input was, thresh(k, X, Y, Z), then
     //create an object like this: satisfactionsMap = {X, Y, Z};
-    const satisfactionsMap = {};
+    const satisfactionsMap: SatisfactionsMap = {};
     const N = satisfactionsArray.length;
     satisfactionsArray.map((satisfactions, index) => {
-      satisfactionsMap[index] = satisfactions;
+      satisfactionsMap[String(index)] = satisfactions;
     });
 
-    const dsats = [];
-    const sats = [];
+    const dsats: Solution[] = [];
+    const sats: Solution[] = [];
     //Push the canonical dsat (All dsats):
     //"<DSAT_N> <DSAT_N-1> ... <DSAT_1>" (note the reverse order)
     dsats.push(
@@ -273,10 +291,11 @@ export const satisfactionsMaker = {
       )
     );
 
-    const dsatsNonCanSolutionTemplates = []; //Sats/dsats with 1 ≤ #(sats) ≠ k
-    const satsSolutionTemplates = []; //Sats/dsats with #(sats) = k
-    for (let i = 1; i < 1 << N; i++) { // i expressed in binary will be: 0 0 ...N... 0 1,  0  0  ... N ... 1 0,  0  0  ... N ... 1 1,  ... , 1 1 1 1 ...N.... 1
-      const c = [];
+    const dsatsNonCanSolutionTemplates: string[] = []; //Sats/dsats with 1 ≤ #(sats) ≠ k
+    const satsSolutionTemplates: string[] = []; //Sats/dsats with #(sats) = k
+    for (let i = 1; i < 1 << N; i++) {
+      // i expressed in binary will be: 0 0 ...N... 0 1,  0  0  ... N ... 1 0,  0  0  ... N ... 1 1,  ... , 1 1 1 1 ...N.... 1
+      const c: string[] = [];
       let totalSatisfactions = 0;
       for (let j = 0; j < N; j++) {
         if (i & (1 << j)) totalSatisfactions++; //binary mask of i (see above) and jth element to count how many "1"s
@@ -289,9 +308,6 @@ export const satisfactionsMaker = {
 
     //Push the non canonical dsats:
     for (const solutionTemplate of dsatsNonCanSolutionTemplates) {
-      //https://bitcoin.sipa.be/miniscript/
-      //The non-canonical options for and_b, or_b, and thresh are always
-      //overcomplete (reason 3), so instead use DONTUSE there
       dsats.push(...combine(solutionTemplate, satisfactionsMap));
     }
 
@@ -302,7 +318,7 @@ export const satisfactionsMaker = {
 
     return { dsats, sats };
   },
-  multi: (k, ...keys) => {
+  multi: (k: string | number, ...keys: string[]): Satisfactions => {
     if (Number.isInteger(Number(k)) && Number(k) > 0) k = Number(k);
     else throw new Error(`k must be positive number: ${k}`);
 
@@ -315,12 +331,12 @@ export const satisfactionsMaker = {
     const dsats = [{ asm: '0 '.repeat(k + 1).trim() }];
 
     // Create all combinations of k signatures
-    function keyCombinations(keys, k) {
+    function keyCombinations(keys: string[], k: number): string[][] {
       if (k === 0) {
         return [[]];
       }
 
-      const combinations = [];
+      const combinations: string[][] = [];
 
       for (let i = 0; i < keys.length; i++) {
         const remainingKeys = keys.slice(i + 1);
@@ -333,7 +349,7 @@ export const satisfactionsMaker = {
       return combinations;
     }
 
-    const asms = [];
+    const asms: string[] = [];
     // Create asms from keyCombination
     keyCombinations(keys, k).forEach(combination => {
       let asm = '0';
@@ -343,31 +359,27 @@ export const satisfactionsMaker = {
       asms.push(asm);
     });
 
-    let asm = '0';
-    for (let i = 0; i < k; i++) {
-      asm += ` <sig(${keys[i]})>`;
-    }
-    const sats = asms.map(asm => ({ asm }));
+    const sats: Solution[] = asms.map(asm => ({ asm }));
 
     return { sats, dsats };
   },
-  a: X => ({
+  a: (X: Satisfactions): Satisfactions => ({
     dsats: [...combine(`dsat(X)`, { X })],
     sats: [...combine(`sat(X)`, { X })]
   }),
-  s: X => ({
+  s: (X: Satisfactions): Satisfactions => ({
     dsats: [...combine(`dsat(X)`, { X })],
     sats: [...combine(`sat(X)`, { X })]
   }),
-  c: X => ({
+  c: (X: Satisfactions): Satisfactions => ({
     dsats: [...combine(`dsat(X)`, { X })],
     sats: [...combine(`sat(X)`, { X })]
   }),
-  d: X => ({
+  d: (X: Satisfactions): Satisfactions => ({
     dsats: [{ asm: `0` }],
     sats: [...combine(`sat(X) 1`, { X })]
   }),
-  v: X => ({
+  v: (X: Satisfactions): Satisfactions => ({
     sats: [...combine(`sat(X)`, { X })]
   }),
 
@@ -404,14 +416,13 @@ export const satisfactionsMaker = {
 
    * DSAT(X) X is a good dsat
    */
-  j: X => {
-    const dsats = [];
-    const sats = [];
+  j: (X: Satisfactions): Satisfactions => {
+    const dsats: Solution[] = [];
 
     dsats.push({ asm: `0` });
 
     //Filter the dsats of X with Non Zero Top Stack (nztp).
-    const dsats_nzts = X.dsats.filter(
+    const dsats_nzts = (X.dsats || []).filter(
       //The top stack corresponds to the last element pushed to the stack,
       //that is, the last element in the produced witness
       solution => solution.asm.trim().split(' ').pop() !== '0'
@@ -420,7 +431,7 @@ export const satisfactionsMaker = {
 
     return { dsats, sats: [...combine(`sat(X)`, { X })] };
   },
-  n: X => ({
+  n: (X: Satisfactions): Satisfactions => ({
     dsats: [...combine(`dsat(X)`, { X })],
     sats: [...combine(`sat(X)`, { X })]
   })
