@@ -70,27 +70,33 @@ const newTimelockInfo = () => ({
 
 /**
  * Combine timelock info for threshold combinators.
- * @param {number} k
- * @param {object[]} infos
+ *
+ * The threshold controls whether multiple branches can be taken. When
+ * `threshold > 1`, mutually exclusive height/time constraints across
+ * branches mark the combination as unspendable.
+ * @param {number} threshold
+ * @param {object[]} timelockInfos
  * @returns {object}
  */
-const combineThresholdTimelocks = (k, infos) =>
-  infos.reduce((acc, info) => {
-    if (k > 1) {
+const combineThresholdTimelocks = (threshold, timelockInfos) => {
+  const combined = newTimelockInfo();
+  for (const timelockInfo of timelockInfos) {
+    if (threshold > 1) {
       const heightAndTime =
-        (acc.csv_with_height && info.csv_with_time) ||
-        (acc.csv_with_time && info.csv_with_height) ||
-        (acc.cltv_with_time && info.cltv_with_height) ||
-        (acc.cltv_with_height && info.cltv_with_time);
-      acc.contains_combination ||= heightAndTime;
+        (combined.csv_with_height && timelockInfo.csv_with_time) ||
+        (combined.csv_with_time && timelockInfo.csv_with_height) ||
+        (combined.cltv_with_time && timelockInfo.cltv_with_height) ||
+        (combined.cltv_with_height && timelockInfo.cltv_with_time);
+      if (heightAndTime) combined.contains_combination = true;
     }
-    acc.csv_with_height ||= info.csv_with_height;
-    acc.csv_with_time ||= info.csv_with_time;
-    acc.cltv_with_height ||= info.cltv_with_height;
-    acc.cltv_with_time ||= info.cltv_with_time;
-    acc.contains_combination ||= info.contains_combination;
-    return acc;
-  }, newTimelockInfo());
+    if (timelockInfo.csv_with_height) combined.csv_with_height = true;
+    if (timelockInfo.csv_with_time) combined.csv_with_time = true;
+    if (timelockInfo.cltv_with_height) combined.cltv_with_height = true;
+    if (timelockInfo.cltv_with_time) combined.cltv_with_time = true;
+    if (timelockInfo.contains_combination) combined.contains_combination = true;
+  }
+  return combined;
+};
 
 const combineAndTimelocks = (left, right) =>
   combineThresholdTimelocks(2, [left, right]);
@@ -284,7 +290,7 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys
       });
     }
-    case 'a': {
+    case 'a': { // altstack wrapper (a:)
       const child = analyzeNode(node.arg, ctx);
       if (!child.valid) return child;
       const correctnessResult = altCorrectness(child.type.correctness);
@@ -296,7 +302,7 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 's': {
+    case 's': { // swap wrapper (s:)
       const child = analyzeNode(node.arg, ctx);
       if (!child.valid) return child;
       const correctnessResult = swapCorrectness(child.type.correctness);
@@ -308,7 +314,7 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'c': {
+    case 'c': { // check wrapper (c:)
       const child = analyzeNode(node.arg, ctx);
       if (!child.valid) return child;
       const correctnessResult = checkCorrectness(child.type.correctness);
@@ -323,7 +329,7 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'd': {
+    case 'd': { // dup-if wrapper (d:)
       const child = analyzeNode(node.arg, ctx);
       if (!child.valid) return child;
       const correctnessResult = ctx.tapscript
@@ -340,7 +346,7 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'v': {
+    case 'v': { // verify wrapper (v:)
       const child = analyzeNode(node.arg, ctx);
       if (!child.valid) return child;
       const correctnessResult = verifyCorrectness(child.type.correctness);
@@ -355,7 +361,7 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'j': {
+    case 'j': { // nonzero wrapper (j:)
       const child = analyzeNode(node.arg, ctx);
       if (!child.valid) return child;
       const correctnessResult = nonZeroCorrectness(child.type.correctness);
@@ -370,7 +376,7 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'n': {
+    case 'n': { // zero-not-equal wrapper (n:)
       const child = analyzeNode(node.arg, ctx);
       if (!child.valid) return child;
       const correctnessResult = zeroNotEqualCorrectness(child.type.correctness);
