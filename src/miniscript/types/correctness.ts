@@ -500,6 +500,9 @@ export const threshCorrectness = (
   void k;
   for (let i = 0; i < subs.length; i++) {
     const subtype = subs[i];
+    if (!subtype) {
+      return { ok: false, error: 'ThresholdBase' };
+    }
     if (i === 0 && subtype.basicType !== 'B') {
       return { ok: false, error: 'ThresholdBase' };
     }
