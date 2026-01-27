@@ -6,11 +6,11 @@
  * See ANALYZER.md for the full flow.
  */
 
+// @ts-ignore No types available for bip68
 import bip68 from 'bip68';
-import { parseExpression } from './parse.js';
+import { parseExpression, type Node } from './parse';
 import {
   makeType,
-  BasicType,
   falseCorrectness,
   hashCorrectness,
   multiCorrectness,
@@ -52,15 +52,83 @@ import {
   threshCorrectness,
   thresholdMalleability,
   dupIfMalleability,
-  verifyMalleability
-} from './types/index.js';
+  verifyMalleability,
+  type MiniscriptType
+} from './types';
 
+type TimelockInfo = {
+  csv_with_height: boolean;
+  csv_with_time: boolean;
+  cltv_with_height: boolean;
+  cltv_with_time: boolean;
+  contains_combination: boolean;
+};
 
-/**
- * Create an empty timelock info record.
- * @returns {object}
- */
-const newTimelockInfo = () => ({
+type KeySetResult = {
+  keys: Set<string>;
+  hasDuplicateKeys: boolean;
+};
+
+type ParseIntegerResult =
+  | { ok: true; value: number }
+  | { ok: false; error: string };
+
+type Bip68DecodeResult = {
+  seconds?: number;
+  blocks?: number;
+};
+
+type ValidAnalysisResult = {
+  valid: true;
+  type: MiniscriptType;
+  timelockInfo: TimelockInfo;
+  keys: Set<string>;
+  hasDuplicateKeys: boolean;
+};
+
+type InvalidAnalysisResult = {
+  valid: false;
+  error: string;
+  type: null;
+  timelockInfo: TimelockInfo;
+  keys: Set<string>;
+  hasDuplicateKeys: boolean;
+};
+
+type AnalysisResult = ValidAnalysisResult | InvalidAnalysisResult;
+
+type AnalyzeContext = {
+  tapscript: boolean;
+};
+
+type AnalyzeOptions = {
+  tapscript?: boolean;
+};
+
+type ParsedAnalysisResult = {
+  issane: boolean;
+  issanesublevel: boolean;
+  valid: boolean;
+  error: string | null;
+  needsSignature: boolean;
+  nonMalleable: boolean;
+  timelockMix: boolean;
+  hasDuplicateKeys: boolean;
+};
+
+type ValidResultParams = {
+  /** Combined correctness and malleability. */
+  type: MiniscriptType;
+  /** Aggregated timelock info. */
+  timelockInfo: TimelockInfo;
+  /** Set of keys used in subtree. */
+  keys: Set<string>;
+  /** Whether duplicate keys were found. */
+  hasDuplicateKeys: boolean;
+};
+
+/** Create an empty timelock info record. */
+const newTimelockInfo = (): TimelockInfo => ({
   csv_with_height: false,
   csv_with_time: false,
   cltv_with_height: false,
@@ -81,12 +149,13 @@ const newTimelockInfo = () => ({
  *
  * If threshold === 1 then it is a logical OR: only one child node needs to be
  * satisfied, so conflicts do not matter.
- *
- * @param {number} threshold
- * @param {object[]} timelockInfos
- * @returns {object}
  */
-const combineThresholdTimelocks = (threshold, timelockInfos) => {
+const combineThresholdTimelocks = (
+  /** Threshold to satisfy. */
+  threshold: number,
+  /** Timelock info from child nodes. */
+  timelockInfos: TimelockInfo[]
+): TimelockInfo => {
   const combined = newTimelockInfo();
   for (const timelockInfo of timelockInfos) {
     if (threshold > 1) {
@@ -106,13 +175,22 @@ const combineThresholdTimelocks = (threshold, timelockInfos) => {
   return combined;
 };
 
-const combineAndTimelocks = (left, right) =>
-  combineThresholdTimelocks(2, [left, right]);
+const combineAndTimelocks = (
+  left: TimelockInfo,
+  right: TimelockInfo
+): TimelockInfo => combineThresholdTimelocks(2, [left, right]);
 
-const combineOrTimelocks = (left, right) =>
-  combineThresholdTimelocks(1, [left, right]);
+const combineOrTimelocks = (
+  left: TimelockInfo,
+  right: TimelockInfo
+): TimelockInfo => combineThresholdTimelocks(1, [left, right]);
 
-const parseInteger = (value, label) => {
+const parseInteger = (
+  /** Raw numeric string. */
+  value: string,
+  /** Label for error messages. */
+  label: string
+): ParseIntegerResult => {
   const num = Number(value);
   if (!Number.isInteger(num)) {
     return { ok: false, error: `${label} must be an integer: ${value}` };
@@ -120,7 +198,12 @@ const parseInteger = (value, label) => {
   return { ok: true, value: num };
 };
 
-const makeValidResult = ({ type, timelockInfo, keys, hasDuplicateKeys }) => ({
+const makeValidResult = ({
+  type,
+  timelockInfo,
+  keys,
+  hasDuplicateKeys
+}: ValidResultParams): ValidAnalysisResult => ({
   valid: true,
   type,
   timelockInfo,
@@ -128,22 +211,25 @@ const makeValidResult = ({ type, timelockInfo, keys, hasDuplicateKeys }) => ({
   hasDuplicateKeys
 });
 
-const makeInvalidResult = error => ({
+const makeInvalidResult = (
+  /** Error message. */
+  error: string
+): InvalidAnalysisResult => ({
   valid: false,
   error,
   type: null,
   timelockInfo: newTimelockInfo(),
-  keys: new Set(),
+  keys: new Set<string>(),
   hasDuplicateKeys: false
 });
 
-/**
- * Merge key sets and detect duplicates across two subtrees.
- * @param {{keys: Set<string>, hasDuplicateKeys: boolean}} left
- * @param {{keys: Set<string>, hasDuplicateKeys: boolean}} right
- * @returns {{keys: Set<string>, hasDuplicateKeys: boolean}}
- */
-const mergeKeySets = (left, right) => {
+/** Merge key sets and detect duplicates across two subtrees. */
+const mergeKeySets = (
+  /** Left key set. */
+  left: KeySetResult,
+  /** Right key set. */
+  right: KeySetResult
+): KeySetResult => {
   const keys = new Set(left.keys);
   let hasDuplicateKeys = left.hasDuplicateKeys || right.hasDuplicateKeys;
   for (const key of right.keys) {
@@ -153,51 +239,55 @@ const mergeKeySets = (left, right) => {
   return { keys, hasDuplicateKeys };
 };
 
-/**
- * Analyze a parsed Miniscript node and return static type info.
- * @param {object} node
- * @param {{tapscript: boolean}} ctx
- * @returns {object}
- */
-const analyzeNode = (node, ctx) => {
+/** Analyze a parsed miniscript node and return static type info. */
+const analyzeNode = (
+  /** Parsed miniscript node. */
+  node: Node,
+  /** Analysis context. */
+  context: AnalyzeContext
+): AnalysisResult => {
   switch (node.type) {
     case '0': {
       const correctnessResult = falseCorrectness();
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, falseMalleability),
         timelockInfo: newTimelockInfo(),
-        keys: new Set(),
+        keys: new Set<string>(),
         hasDuplicateKeys: false
       });
     }
     case '1': {
       const correctnessResult = trueCorrectness();
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, trueMalleability),
         timelockInfo: newTimelockInfo(),
-        keys: new Set(),
+        keys: new Set<string>(),
         hasDuplicateKeys: false
       });
     }
     case 'pk_k': {
       const correctnessResult = pkKCorrectness();
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, pkMalleability()),
         timelockInfo: newTimelockInfo(),
-        keys: new Set([node.key]),
+        keys: new Set<string>([node.key]),
         hasDuplicateKeys: false
       });
     }
     case 'pk_h': {
       const correctnessResult = pkHCorrectness();
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, pkMalleability()),
         timelockInfo: newTimelockInfo(),
-        keys: new Set([node.key]),
+        keys: new Set<string>([node.key]),
         hasDuplicateKeys: false
       });
     }
@@ -206,11 +296,12 @@ const analyzeNode = (node, ctx) => {
     case 'hash256':
     case 'hash160': {
       const correctnessResult = hashCorrectness();
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, hashMalleability()),
         timelockInfo: newTimelockInfo(),
-        keys: new Set(),
+        keys: new Set<string>(),
         hasDuplicateKeys: false
       });
     }
@@ -224,11 +315,12 @@ const analyzeNode = (node, ctx) => {
       if (parsed.value < 500000000) timelockInfo.cltv_with_height = true;
       else timelockInfo.cltv_with_time = true;
       const correctnessResult = timeCorrectness();
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, timeMalleability()),
         timelockInfo,
-        keys: new Set(),
+        keys: new Set<string>(),
         hasDuplicateKeys: false
       });
     }
@@ -238,37 +330,40 @@ const analyzeNode = (node, ctx) => {
       if (parsed.value < 1 || parsed.value >= 2 ** 31) {
         return makeInvalidResult(`older() value out of range: ${node.value}`);
       }
-      const decoded = bip68.decode(parsed.value);
-      if (!decoded.hasOwnProperty('seconds') && !decoded.hasOwnProperty('blocks')) {
+      const decoded = bip68.decode(parsed.value) as Bip68DecodeResult;
+      if (!('seconds' in decoded) && !('blocks' in decoded)) {
         return makeInvalidResult(`Invalid bip68 encoded value: ${node.value}`);
       }
       const timelockInfo = newTimelockInfo();
-      if (decoded.hasOwnProperty('seconds')) timelockInfo.csv_with_time = true;
-      if (decoded.hasOwnProperty('blocks')) timelockInfo.csv_with_height = true;
+      if ('seconds' in decoded) timelockInfo.csv_with_time = true;
+      if ('blocks' in decoded) timelockInfo.csv_with_height = true;
       const correctnessResult = timeCorrectness();
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, timeMalleability()),
         timelockInfo,
-        keys: new Set(),
+        keys: new Set<string>(),
         hasDuplicateKeys: false
       });
     }
     case 'multi': {
-      if (ctx.tapscript) return makeInvalidResult('multi() is not valid in tapscript');
+      if (context.tapscript)
+        return makeInvalidResult('multi() is not valid in tapscript');
       const parsed = parseInteger(node.k, 'multi');
       if (!parsed.ok) return makeInvalidResult(parsed.error);
       if (parsed.value < 1 || parsed.value > node.keys.length) {
         return makeInvalidResult(`multi() k out of range: ${node.k}`);
       }
-      const keys = new Set();
+      const keys = new Set<string>();
       let hasDuplicateKeys = false;
       node.keys.forEach(key => {
         if (keys.has(key)) hasDuplicateKeys = true;
         keys.add(key);
       });
       const correctnessResult = multiCorrectness();
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, multiMalleability()),
         timelockInfo: newTimelockInfo(),
@@ -277,20 +372,22 @@ const analyzeNode = (node, ctx) => {
       });
     }
     case 'multi_a': {
-      if (!ctx.tapscript) return makeInvalidResult('multi_a() is only valid in tapscript');
+      if (!context.tapscript)
+        return makeInvalidResult('multi_a() is only valid in tapscript');
       const parsed = parseInteger(node.k, 'multi_a');
       if (!parsed.ok) return makeInvalidResult(parsed.error);
       if (parsed.value < 1 || parsed.value > node.keys.length) {
         return makeInvalidResult(`multi_a() k out of range: ${node.k}`);
       }
-      const keys = new Set();
+      const keys = new Set<string>();
       let hasDuplicateKeys = false;
       node.keys.forEach(key => {
         if (keys.has(key)) hasDuplicateKeys = true;
         keys.add(key);
       });
       const correctnessResult = multiACorrectness();
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, multiMalleability()),
         timelockInfo: newTimelockInfo(),
@@ -298,11 +395,13 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys
       });
     }
-    case 'a': { // altstack wrapper (a:)
-      const child = analyzeNode(node.arg, ctx);
+    case 'a': {
+      // altstack wrapper (a:)
+      const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
       const correctnessResult = altCorrectness(child.type.correctness);
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, child.type.malleability),
         timelockInfo: child.timelockInfo,
@@ -310,11 +409,13 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 's': { // swap wrapper (s:)
-      const child = analyzeNode(node.arg, ctx);
+    case 's': {
+      // swap wrapper (s:)
+      const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
       const correctnessResult = swapCorrectness(child.type.correctness);
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(correctnessResult.correctness, child.type.malleability),
         timelockInfo: child.timelockInfo,
@@ -322,11 +423,13 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'c': { // check wrapper (c:)
-      const child = analyzeNode(node.arg, ctx);
+    case 'c': {
+      // check wrapper (c:)
+      const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
       const correctnessResult = checkCorrectness(child.type.correctness);
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(
           correctnessResult.correctness,
@@ -337,13 +440,15 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'd': { // dup-if wrapper (d:)
-      const child = analyzeNode(node.arg, ctx);
+    case 'd': {
+      // dup-if wrapper (d:)
+      const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
-      const correctnessResult = ctx.tapscript
+      const correctnessResult = context.tapscript
         ? dupIfTapscriptCorrectness(child.type.correctness)
         : dupIfWshCorrectness(child.type.correctness);
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(
           correctnessResult.correctness,
@@ -354,11 +459,13 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'v': { // verify wrapper (v:)
-      const child = analyzeNode(node.arg, ctx);
+    case 'v': {
+      // verify wrapper (v:)
+      const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
       const correctnessResult = verifyCorrectness(child.type.correctness);
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(
           correctnessResult.correctness,
@@ -369,11 +476,13 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'j': { // nonzero wrapper (j:)
-      const child = analyzeNode(node.arg, ctx);
+    case 'j': {
+      // nonzero wrapper (j:)
+      const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
       const correctnessResult = nonZeroCorrectness(child.type.correctness);
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
         type: makeType(
           correctnessResult.correctness,
@@ -384,73 +493,81 @@ const analyzeNode = (node, ctx) => {
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
-    case 'n': { // zero-not-equal wrapper (n:)
-      const child = analyzeNode(node.arg, ctx);
+    case 'n': {
+      // zero-not-equal wrapper (n:)
+      const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
       const correctnessResult = zeroNotEqualCorrectness(child.type.correctness);
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       return makeValidResult({
-        type: makeType(
-          correctnessResult.correctness,
-          child.type.malleability
-        ),
+        type: makeType(correctnessResult.correctness, child.type.malleability),
         timelockInfo: child.timelockInfo,
         keys: child.keys,
         hasDuplicateKeys: child.hasDuplicateKeys
       });
     }
     case 'and_v': {
-      const left = analyzeNode(node.args[0], ctx);
-      const right = analyzeNode(node.args[1], ctx);
+      const left = analyzeNode(node.args[0], context);
+      const right = analyzeNode(node.args[1], context);
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = andVCorrectness(
         left.type.correctness,
         right.type.correctness
       );
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
         type: makeType(
           correctnessResult.correctness,
           andVMalleability(left.type.malleability, right.type.malleability)
         ),
-        timelockInfo: combineAndTimelocks(left.timelockInfo, right.timelockInfo),
+        timelockInfo: combineAndTimelocks(
+          left.timelockInfo,
+          right.timelockInfo
+        ),
         keys: keysResult.keys,
         hasDuplicateKeys: keysResult.hasDuplicateKeys
       });
     }
     case 'and_b': {
-      const left = analyzeNode(node.args[0], ctx);
-      const right = analyzeNode(node.args[1], ctx);
+      const left = analyzeNode(node.args[0], context);
+      const right = analyzeNode(node.args[1], context);
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = andBCorrectness(
         left.type.correctness,
         right.type.correctness
       );
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
         type: makeType(
           correctnessResult.correctness,
           andBMalleability(left.type.malleability, right.type.malleability)
         ),
-        timelockInfo: combineAndTimelocks(left.timelockInfo, right.timelockInfo),
+        timelockInfo: combineAndTimelocks(
+          left.timelockInfo,
+          right.timelockInfo
+        ),
         keys: keysResult.keys,
         hasDuplicateKeys: keysResult.hasDuplicateKeys
       });
     }
     case 'or_b': {
-      const left = analyzeNode(node.args[0], ctx);
-      const right = analyzeNode(node.args[1], ctx);
+      const left = analyzeNode(node.args[0], context);
+      const right = analyzeNode(node.args[1], context);
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = orBCorrectness(
         left.type.correctness,
         right.type.correctness
       );
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
         type: makeType(
@@ -463,15 +580,16 @@ const analyzeNode = (node, ctx) => {
       });
     }
     case 'or_c': {
-      const left = analyzeNode(node.args[0], ctx);
-      const right = analyzeNode(node.args[1], ctx);
+      const left = analyzeNode(node.args[0], context);
+      const right = analyzeNode(node.args[1], context);
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = orCCorrectness(
         left.type.correctness,
         right.type.correctness
       );
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
         type: makeType(
@@ -484,15 +602,16 @@ const analyzeNode = (node, ctx) => {
       });
     }
     case 'or_d': {
-      const left = analyzeNode(node.args[0], ctx);
-      const right = analyzeNode(node.args[1], ctx);
+      const left = analyzeNode(node.args[0], context);
+      const right = analyzeNode(node.args[1], context);
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = orDCorrectness(
         left.type.correctness,
         right.type.correctness
       );
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
         type: makeType(
@@ -505,15 +624,16 @@ const analyzeNode = (node, ctx) => {
       });
     }
     case 'or_i': {
-      const left = analyzeNode(node.args[0], ctx);
-      const right = analyzeNode(node.args[1], ctx);
+      const left = analyzeNode(node.args[0], context);
+      const right = analyzeNode(node.args[1], context);
       if (!left.valid) return left;
       if (!right.valid) return right;
       const correctnessResult = orICorrectness(
         left.type.correctness,
         right.type.correctness
       );
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       const keysResult = mergeKeySets(left, right);
       return makeValidResult({
         type: makeType(
@@ -526,9 +646,9 @@ const analyzeNode = (node, ctx) => {
       });
     }
     case 'andor': {
-      const left = analyzeNode(node.args[0], ctx);
-      const mid = analyzeNode(node.args[1], ctx);
-      const right = analyzeNode(node.args[2], ctx);
+      const left = analyzeNode(node.args[0], context);
+      const mid = analyzeNode(node.args[1], context);
+      const right = analyzeNode(node.args[2], context);
       if (!left.valid) return left;
       if (!mid.valid) return mid;
       if (!right.valid) return right;
@@ -537,9 +657,10 @@ const analyzeNode = (node, ctx) => {
         mid.type.correctness,
         right.type.correctness
       );
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       const leftMidKeys = mergeKeySets(left, mid);
-      const allKeys = mergeKeySets({ ...leftMidKeys, valid: true }, right);
+      const allKeys = mergeKeySets(leftMidKeys, right);
       const combinedTimelocks = combineOrTimelocks(
         combineAndTimelocks(left.timelockInfo, mid.timelockInfo),
         right.timelockInfo
@@ -565,46 +686,53 @@ const analyzeNode = (node, ctx) => {
       if (k < 1 || k > node.subs.length) {
         return makeInvalidResult(`thresh() k out of range: ${node.k}`);
       }
-      const subs = node.subs.map(sub => analyzeNode(sub, ctx));
+      const subs = node.subs.map(sub => analyzeNode(sub, context));
       const invalidSub = subs.find(sub => !sub.valid);
       if (invalidSub) return invalidSub;
+      const validSubs = subs as ValidAnalysisResult[];
       const correctnessResult = threshCorrectness(
         k,
-        subs.map(sub => sub.type.correctness)
+        validSubs.map(sub => sub.type.correctness)
       );
-      if (!correctnessResult.ok) return makeInvalidResult(correctnessResult.error);
+      if (!correctnessResult.ok)
+        return makeInvalidResult(correctnessResult.error);
       const timelocks = combineThresholdTimelocks(
         k,
-        subs.map(sub => sub.timelockInfo)
+        validSubs.map(sub => sub.timelockInfo)
       );
-      const mergedKeys = subs.reduce(
+      const mergedKeys = validSubs.reduce<KeySetResult>(
         (acc, sub) => mergeKeySets(acc, sub),
-        { keys: new Set(), hasDuplicateKeys: false }
+        { keys: new Set<string>(), hasDuplicateKeys: false }
       );
       return makeValidResult({
         type: makeType(
           correctnessResult.correctness,
-          thresholdMalleability(k, subs.map(sub => sub.type.malleability))
+          thresholdMalleability(
+            k,
+            validSubs.map(sub => sub.type.malleability)
+          )
         ),
         timelockInfo: timelocks,
         keys: mergedKeys.keys,
         hasDuplicateKeys: mergedKeys.hasDuplicateKeys
       });
     }
-    default:
-      return makeInvalidResult(`Unknown miniscript node: ${node.type}`);
+    default: {
+      const unknownNode = node as { type: string };
+      return makeInvalidResult(`Unknown miniscript node: ${unknownNode.type}`);
+    }
   }
 };
 
-/**
- * Analyze a parsed AST node and compute issane flags.
- * @param {object} node
- * @param {{tapscript?: boolean}} options
- * @returns {object}
- */
-export const analyzeParsedNode = (node, options = {}) => {
-  const ctx = { tapscript: Boolean(options.tapscript) };
-  const analysis = analyzeNode(node, ctx);
+/** Analyze a parsed AST node and compute issane flags. */
+export const analyzeParsedNode = (
+  /** Parsed miniscript node. */
+  node: Node,
+  /** Analysis options. */
+  options: AnalyzeOptions = {}
+): ParsedAnalysisResult => {
+  const context: AnalyzeContext = { tapscript: Boolean(options.tapscript) };
+  const analysis = analyzeNode(node, context);
   if (!analysis.valid) {
     return {
       issane: false,
@@ -624,13 +752,13 @@ export const analyzeParsedNode = (node, options = {}) => {
   const hasDuplicateKeys = analysis.hasDuplicateKeys;
   const issanesublevel =
     needsSignature && nonMalleable && !timelockMix && !hasDuplicateKeys;
-  const issane = issanesublevel && analysis.type.correctness.basicType === BasicType.B;
-  let error = null;
+  const issane = issanesublevel && analysis.type.correctness.basicType === 'B';
+  let error: string | null = null;
   if (!needsSignature) error = 'SiglessBranch';
   else if (!nonMalleable) error = 'Malleable';
   else if (hasDuplicateKeys) error = 'RepeatedPubkeys';
   else if (timelockMix) error = 'HeightTimelockCombination';
-  else if (analysis.type.correctness.basicType !== BasicType.B) error = 'NonTopLevel';
+  else if (analysis.type.correctness.basicType !== 'B') error = 'NonTopLevel';
 
   return {
     issane,
@@ -644,13 +772,13 @@ export const analyzeParsedNode = (node, options = {}) => {
   };
 };
 
-/**
- * Analyze a miniscript expression and return sanity flags.
- * @param {string} miniscript
- * @param {{tapscript?: boolean}} options
- * @returns {object}
- */
-export const analyzeMiniscript = (miniscript, options = {}) => {
+/** Analyze a miniscript expression and return sanity flags. */
+export const analyzeMiniscript = (
+  /** Raw miniscript expression. */
+  miniscript: string,
+  /** Analysis options. */
+  options: AnalyzeOptions = {}
+): ParsedAnalysisResult => {
   const node = parseExpression(miniscript);
   return analyzeParsedNode(node, options);
 };
