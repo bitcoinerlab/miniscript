@@ -99,8 +99,11 @@ function combine(
 
     //curr is the first d?sat() matched in solutionTemplate:
     const curr = currMatch[0];
+    if (!curr) {
+      throw new Error('Invalid solutionTemplate: ' + solutionTemplate);
+    }
     //pre is whatever was before the first d?sat():
-    const pre = solutionTemplate.split(curr)[0];
+    const pre = solutionTemplate.split(curr)[0] ?? '';
     //post is whatever was after the first d?sat():
     const post = solutionTemplate.slice(curr.length + pre.length);
 
@@ -108,14 +111,18 @@ function combine(
     //This will match the string "X" in the example above:
     //currArg = "X" for solutionTemplate "0 dsat(X) sat(Y) 1 sat(Z)"
     const currArg = currMatch[1];
+    if (!currArg) {
+      throw new Error('Invalid solutionTemplate: ' + solutionTemplate);
+    }
     //currKey = "sats" or "dsats". "dsats" for the example above.
     const currKey: SatisfactionKey = curr[0] === 'd' ? 'dsats' : 'sats';
 
-    if (typeof satisfactionsMap[currArg] !== 'object')
+    const satisfactions = satisfactionsMap[currArg];
+    if (typeof satisfactions !== 'object')
       throw new Error(
         `satisfactionsMap does not provide sats/dsats solutions for argument ${currArg}, evaluating: ${solutionTemplate}`
       );
-    const currSolutions: Solution[] = satisfactionsMap[currArg][currKey] || [];
+    const currSolutions: Solution[] = satisfactions[currKey] || [];
     for (const currSolution of currSolutions) {
       //Does *post* contain further sat() or dsat() expressions?
       if (post.match(reCurr)) {
@@ -123,19 +130,22 @@ function combine(
         const postSolutions = combine(post, satisfactionsMap);
         for (const postSolution of postSolutions) {
           //if ((currSolution.nLockTime && postSolution.nLockTime)) return [];
-          solutions.push({
-            nSequence: maxLock(
-              currSolution.nSequence,
-              postSolution.nSequence,
-              'RELATIVE'
-            ),
-            nLockTime: maxLock(
-              currSolution.nLockTime,
-              postSolution.nLockTime,
-              'ABSOLUTE'
-            ),
+          const nSequence = maxLock(
+            currSolution.nSequence,
+            postSolution.nSequence,
+            'RELATIVE'
+          );
+          const nLockTime = maxLock(
+            currSolution.nLockTime,
+            postSolution.nLockTime,
+            'ABSOLUTE'
+          );
+          const solution: Solution = {
             asm: `${pre}${currSolution.asm}${postSolution.asm}`
-          });
+          };
+          if (nSequence !== undefined) solution.nSequence = nSequence;
+          if (nLockTime !== undefined) solution.nLockTime = nLockTime;
+          solutions.push(solution);
         }
       } else {
         //This was the last instance of combine where there are no *post*
@@ -339,10 +349,12 @@ export const satisfactionsMaker = {
       const combinations: string[][] = [];
 
       for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (!key) throw new Error('Missing key');
         const remainingKeys = keys.slice(i + 1);
         const subCombinations = keyCombinations(remainingKeys, k - 1);
         subCombinations.forEach(combination => {
-          combinations.push([keys[i], ...combination]);
+          combinations.push([key, ...combination]);
         });
       }
 
