@@ -1,38 +1,56 @@
 // Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
 // Distributed under the MIT software license
 
-import { satisfactionsMaker } from './satisfactions.js';
-import { analyzeMiniscript } from '../miniscript.js';
+import {
+  satisfactionsMaker,
+  type Solution,
+  type Satisfactions
+} from './satisfactions';
+import { analyzeMiniscript } from '../miniscript';
 
 /**
- * @typedef {Object} Solution
- * @property {number} nSequence - the maximum nSequence time of all the sat() or dsat() expressions in the solution.
- * @property {number} nLockTime - the maximum nLockTime of all the sat() or dsat() expressions in the solution.
- * @property {string} asm - the resulting witness after combining all the sat() or dsat() expressions.
- */
-
-/**
- * @typedef {Object} Satisfactions
- * @property {Solution[]} sats - An array of {@link Solution} objects representing the sat() expressions.
- * @property {Solution[]} dsats - An array of {@link Solution} objects representing the dsat() expressions.
+ * An object containing the satisfier results.
+ *
+ * - nonMalleableSats: An array of {@link Solution} objects representing
+ *   the non-malleable sat() expressions.
+ * - malleableSats: An array of {@link Solution} objects representing the
+ *   malleable sat() expressions.
+ * - unknownSats: An array of {@link Solution} objects representing the sat()
+ *   expressions that contain some of the `unknown` pieces of information.
+ *
  * @see {@link Solution}
  */
+export type SatisfierResult = {
+  nonMalleableSats: Solution[];
+  malleableSats: Solution[];
+  unknownSats: Solution[];
+};
+
+export type SatisfierOptions = {
+  unknowns?: string[];
+  knowns?: string[];
+};
 
 /**
- * @typedef {Object} SatisfierResult
- * @property {Solution[]} nonMalleableSats - An array of {@link Solution} objects representing the non-malleable sat() expressions.
- * @property {Solution[]} malleableSats - An array of {@link Solution} objects representing the malleable sat() expressions.
- * @property {Solution[]} unknownSats - An array of {@link Solution} objects representing the sat() expressions that contain some of the `unknown` pieces of information.
- * @see {@link Solution}
+ * Internal helper type used only for malleabilityAnalysis.
+ * It carries temporary markers (dontuse, signatures) while filtering sats.
+ * These markers are removed before results are returned, so they are not part
+ * of the public Solution shape.
  */
+type InternalSolution = Solution & {
+  dontuse?: boolean;
+  signatures?: string[];
+};
 
+type SatisfactionsMakerFn = (
+  ...args: Array<string | number | Satisfactions>
+) => Satisfactions;
 
-/**
- * Computes the weight units (WU) of a witness.
- * @param {string} asm - the witness to compute the WU of.
- * @returns {number} the weight units (WU) of the witness.
- */
-function witnessWU(asm) {
+/** Computes the weight units (WU) of a witness. */
+function witnessWU(
+  /** The witness to compute the WU of. */
+  asm: string
+): number {
   // Split the witness string into an array of substrings
   // a miniscipt witness is either, <sig..., <sha256..., <hash256...,
   // <ripemd160..., <hash160...,  <... (for pubkeys) 0 or 1
@@ -44,6 +62,7 @@ function witnessWU(asm) {
   // Iterate over the array of substrings
   for (const substring of substrings) {
     if (substring === '') {
+      //skip
     }
     // Check if the substring starts with "<sig"
     else if (substring.startsWith('<sig')) {
@@ -85,50 +104,58 @@ function witnessWU(asm) {
 
 /**
  * Performs a malleability analysis on an array of sat() solutions.
- * @param {Solution[]} sats - the array of sat() solutions to perform the analysis on.
- * @returns {Object} An object with two keys:
- *   - `nonMalleableSats`: an array of {@link Solution} objects representing the non-malleable sat() expressions.
- *   - `malleableSats`: an array of {@link Solution} objects representing the malleable sat() expressions.
+ *
+ * Returns an object with two keys:
+ * - nonMalleableSats: an array of Solution objects representing the
+ *   non-malleable sat() expressions.
+ * - malleableSats: an array of Solution objects representing the malleable
+ *   sat() expressions.
+ *
  * @see {@link Solution}
  */
-function malleabilityAnalysis(sats) {
-  sats = sats
-    .map(sat => {
+function malleabilityAnalysis(
+  /** The array of sat() solutions to analyze. */
+  sats: Solution[]
+): { nonMalleableSats: Solution[]; malleableSats: Solution[] } {
+  const internalSats: InternalSolution[] = sats
+    .map((sat): InternalSolution => {
       //Deep copy the objects so that this function is pure
       //(does not mutate sats)
-      sat = { ...sat };
+      const internalSat: InternalSolution = { ...sat };
       //Extract the signatures used in this witness as an array
-      sat.signatures = sat.asm.split(' ').filter(op => {
+      internalSat.signatures = internalSat.asm.split(' ').filter(op => {
         return op.startsWith('<sig');
       });
       //A non-zero solution without a signature is malleable, and a solution
       //without signature is unacceptable anyway
-      if (sat.signatures.length === 0) {
-        sat.dontuse = true;
+      if (internalSat.signatures.length === 0) {
+        internalSat.dontuse = true;
       }
       //<random_preimage()> is a dissatisfaction for a preimage. It is
       //interchangable for any 32 bytes random number and thus, it is malleable.
-      if (sat.asm.includes('<random_preimage()>')) {
-        sat.dontuse = true;
+      if (internalSat.asm.includes('<random_preimage()>')) {
+        internalSat.dontuse = true;
       }
-      return sat;
+      return internalSat;
     })
     // Sort sats by weight unit in ascending order
     .sort((a, b) => witnessWU(a.asm) - witnessWU(b.asm));
 
-  for (const sat of sats) {
+  for (const sat of internalSats) {
     //For the same nLockTime and nSequence, check if otherSat signatures are a
     //subset of sat. If this is the case then sat cannot be used.
     //"For the same nLockTime and nSequence" condition is set because signatures
     //change for each tuple of (nLockTime, nSequence):
-    for (const otherSat of sats) {
+    for (const otherSat of internalSats) {
+      const otherSignatures = otherSat.signatures || [];
+      const satSignatures = sat.signatures || [];
       if (
         otherSat !== sat &&
         //for the same nLockTime and nSequence
         otherSat.nLockTime === sat.nLockTime &&
         otherSat.nSequence === sat.nSequence &&
         //is otherSat.signatures equal or a subset of sat.signatures?
-        otherSat.signatures.every(sig => sat.signatures.includes(sig))
+        otherSignatures.every(sig => satSignatures.includes(sig))
       ) {
         //sat is for example <sig(key1)> <sig(key2)> and otherSat is <sig(key1)>
         //otherSat cannot be used because an attacker could use it to create
@@ -138,8 +165,8 @@ function malleabilityAnalysis(sats) {
     }
   }
 
-  const nonMalleableSats = sats.filter(sat => !sat.dontuse);
-  const malleableSats = sats.filter(sat => sat.dontuse);
+  const nonMalleableSats = internalSats.filter(sat => !sat.dontuse);
+  const malleableSats = internalSats.filter(sat => sat.dontuse);
 
   //Clean the objects before returning them
   for (const sats of [nonMalleableSats, malleableSats]) {
@@ -149,19 +176,22 @@ function malleabilityAnalysis(sats) {
     });
   }
 
-  return { nonMalleableSats, malleableSats };
+  return {
+    nonMalleableSats: nonMalleableSats as Solution[],
+    malleableSats: malleableSats as Solution[]
+  };
 }
 
 /**
  * Determines whether the specified argument of the given miniscript expression
  * is a scalar.
- * @param {string} functionName - the name of the function to check.
- * @param {number} argPosition - the position of the argument to check,
- * starting from 0.
- * @returns {boolean} `true` if the specified argument of the given function is
- * a scalar; `false` otherwise.
  */
-function isScalarArg(functionName, argPosition) {
+function isScalarArg(
+  /** The name of the function to check. */
+  functionName: string,
+  /** The position of the argument to check, starting from 0. */
+  argPosition: number
+): boolean {
   switch (functionName) {
     case 'pk_k':
     case 'pk_h':
@@ -185,12 +215,11 @@ function isScalarArg(functionName, argPosition) {
  * This function is called recursively to find subexpressions
  * within subexpressions until all the arguments of a subexpression are
  * scalars.
- *
- * @param {string} miniscript - A miniscript expression.
- *
- * @returns {Satisfactions} - The satisfactions.
  */
-const evaluate = miniscript => {
+const evaluate = (
+  /** A miniscript expression. */
+  miniscript: string
+): Satisfactions => {
   if (typeof miniscript !== 'string')
     throw new Error('Invalid expression: ' + miniscript);
   //convert wrappers like this "sln:" into "s:l:n:"
@@ -216,10 +245,13 @@ const evaluate = miniscript => {
   const matchFunctionName = miniscript.match(reFunctionName);
   if (!matchFunctionName) throw new Error('Invalid expression: ' + miniscript);
   const functionName = matchFunctionName[0];
-  if (typeof satisfactionsMaker[functionName] !== 'function')
+  const satisfier = satisfactionsMaker[
+    functionName as keyof typeof satisfactionsMaker
+  ] as SatisfactionsMakerFn;
+  if (typeof satisfier !== 'function')
     throw new Error(functionName + ' not implemented');
 
-  let args;
+  let args: string | undefined;
   if (miniscript[functionName.length] === '(')
     args = miniscript.substring(functionName.length + 1, miniscript.length - 1);
   else if (miniscript[functionName.length] === ':')
@@ -228,14 +260,14 @@ const evaluate = miniscript => {
   //the function arguments for satisfactionsMaker[functionName]:
   //They will be called like using ES6 spread operator:
   //satisfactionsMaker[functionName](...satisfactionMakerArgs)
-  const satisfactionMakerArgs = [];
+  const satisfactionMakerArgs: Array<string | number | Satisfactions> = [];
   if (args) {
     let lastCommaPosition = -1;
     let argLevel = 0; //argLevel tracks nested parenthesis
     let argPosition = 0; //argPosition tracks argument order within functionName
     for (let i = 0; i < args.length; i++) {
-      args[i] === '(' && argLevel++;
-      args[i] === ')' && argLevel--;
+      if (args[i] === '(') argLevel++;
+      if (args[i] === ')') argLevel--;
       if (argLevel === 0) {
         let arg;
         if (args[i] === ',') {
@@ -262,17 +294,14 @@ const evaluate = miniscript => {
     }
   }
 
-  return satisfactionsMaker[functionName](...satisfactionMakerArgs);
+  return satisfier(...satisfactionMakerArgs);
 };
 
 /**
  * Obtains the satisfactions of a miniscript.
- * @function
  *
- * @param {string} miniscript - A miniscript expression.
- * @param {object} [options]
- * @param {string[]} [options.unknowns] - An array with the pieces of information that
- * cannot be used to construct solutions because they are unknown.
+ * `options.unknowns` is an array with the pieces of information that cannot be
+ * used to construct solutions because they are unknown.
  *
  * For example, if a honest user cannot sign with `key`, doesn't know the
  * preimage of `H` and the preimage of `e946029032eae1752e181bebab65de15cf0b93aaac4ee0ffdcfccb683c874d43` then `unknown` must be:
@@ -297,32 +326,34 @@ const evaluate = miniscript => {
  * solutions. If the miniscript is sane, then unknowns can be set to produce
  * more possible solutions, including preimages, as described above.
  *
- * @param {string[]} [options.knowns] - An array
- * with the only pieces of information that can be used to build satisfactions.
- * This is the complimentary to unknowns. Only `knowns` or `unknowns` must be
- * passed.
+ * `options.knowns` is an array with the only pieces of information that can be
+ * used to build satisfactions.
+ * This is the complimentary to unknowns. Only `knowns` or
+ * `unknowns` must be passed.
  *
  * If neither knowns and unknowns is passed then it is assumed that there are
  * no unknowns, in other words, that all pieces of information are known.
- *
- * @returns {SatisfierResult}
- *
- * @see {@link Solution}
  */
-export const satisfier = (miniscript, options = {}) => {
-  let { unknowns, knowns } = options;
-  let analysis;
+export const satisfier = (
+  /** A miniscript expression. */
+  miniscript: string,
+  /** Satisfier options. */
+  options: SatisfierOptions = {}
+): SatisfierResult => {
+  let { unknowns } = options;
+  const { knowns } = options;
+  let analysis: ReturnType<typeof analyzeMiniscript>;
   try {
     analysis = analyzeMiniscript(miniscript);
   } catch (error) {
     const err = new Error(`Miniscript ${miniscript} is not sane.`);
-    err.cause = error;
+    (err as Error & { cause?: unknown }).cause = error;
     throw err;
   }
 
   if (!analysis.valid || !analysis.issane) {
     const err = new Error(`Miniscript ${miniscript} is not sane.`);
-    err.cause = analysis.error;
+    (err as Error & { cause?: unknown }).cause = analysis.error;
     throw err;
   }
 
@@ -337,10 +368,10 @@ export const satisfier = (miniscript, options = {}) => {
     throw new Error(`Incorrect types for unknowns / knowns`);
   }
 
-  const knownSats = [];
-  const unknownSats = [];
-  const sats = evaluate(miniscript).sats || [];
-  sats.map(sat => {
+  const knownSats: Solution[] = [];
+  const unknownSats: Solution[] = [];
+  const sats: Solution[] = evaluate(miniscript).sats || [];
+  sats.forEach(sat => {
     if (typeof sat.nSequence === 'undefined') delete sat.nSequence;
     if (typeof sat.nLockTime === 'undefined') delete sat.nLockTime;
     //Clean format: 1 consecutive spaces at most, no leading & trailing spaces
@@ -353,7 +384,8 @@ export const satisfier = (miniscript, options = {}) => {
         knownSats.push(sat);
       }
     } else {
-      const delKnowns = knowns.reduce(
+      const knownList = knowns || [];
+      const delKnowns = knownList.reduce(
         (acc, known) => acc.replace(known, ''),
         sat.asm
       );
