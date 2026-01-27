@@ -5,3 +5,4 @@ docs/
 webdocs/
 dist/
 src/bindings.js
+.opencode*
