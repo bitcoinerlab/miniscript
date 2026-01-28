@@ -1,7 +1,34 @@
 // Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
 // Distributed under the MIT software license
 
+// @ts-expect-error No types available for bip68
 import bip68 from 'bip68';
+
+export type Fixture = {
+  miniscript: string;
+  script?: string;
+  throws?: string;
+  unknowns?: string[];
+  knowns?: string[];
+  nonMalleableSats?: Array<{
+    asm: string;
+    nSequence?: number | string;
+    nLockTime?: number | string;
+  }>;
+  malleableSats?: Array<{
+    asm: string;
+    nSequence?: number | string;
+    nLockTime?: number | string;
+  }>;
+  unknownSats?: Array<{
+    asm: string;
+    nSequence?: number | string;
+    nLockTime?: number | string;
+  }>;
+  [key: string]: unknown;
+};
+
+export type FixtureGroup = Record<string, Fixture>;
 
 export const primitives = {
   0: {
@@ -431,15 +458,15 @@ export const primitives = {
     throws:
       'Miniscript thresh(1,c:pk_k(key1),altv:after(1000000000),altv:after(100)) is not sane.'
   },
-  'thresh(2,c:pk_k(key1),altv:after(200),altv:after(100))': {
-    miniscript: 'thresh(2,c:pk_k(key1),altv:after(200),altv:after(100))',
-    script:
-      '<key1> OP_CHECKSIG OP_TOALTSTACK OP_IF 0 OP_ELSE <c800> OP_CHECKLOCKTIMEVERIFY OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD OP_TOALTSTACK OP_IF 0 OP_ELSE <64> OP_CHECKLOCKTIMEVERIFY OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD 2 OP_EQUAL',
-    //[{"nLockTime": 200, "script": "1 0 <sig(key1)>"}, {"nLockTime": 100, "script": "0 1 <sig(key1)>"}, {"nLockTime": 200, "script": "0 0 0"}]
-    nonMalleableSats: [{ nLockTime: 200, asm: '0 0 0' }], //Don't reveal the signature
-    //because it would be malleable
-    malleableSats: []
-  },
+  //'thresh(2,c:pk_k(key1),altv:after(200),altv:after(100))': {
+  //  miniscript: 'thresh(2,c:pk_k(key1),altv:after(200),altv:after(100))',
+  //  script:
+  //    '<key1> OP_CHECKSIG OP_TOALTSTACK OP_IF 0 OP_ELSE <c800> OP_CHECKLOCKTIMEVERIFY OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD OP_TOALTSTACK OP_IF 0 OP_ELSE <64> OP_CHECKLOCKTIMEVERIFY OP_VERIFY 1 OP_ENDIF OP_FROMALTSTACK OP_ADD 2 OP_EQUAL',
+  //  //[{"nLockTime": 200, "script": "1 0 <sig(key1)>"}, {"nLockTime": 100, "script": "0 1 <sig(key1)>"}, {"nLockTime": 200, "script": "0 0 0"}]
+  //  nonMalleableSats: [{ nLockTime: 200, asm: '0 0 0' }], //Don't reveal the signature
+  //  //because it would be malleable
+  //  malleableSats: []
+  //},
   'thresh(2,c:pk_k(key1),altv:after(200),altv:after(100))': {
     miniscript: 'thresh(2,c:pk_k(key1),altv:after(200),altv:after(100))',
     script:

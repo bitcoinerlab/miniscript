@@ -3,13 +3,24 @@
 
 import { satisfier } from '../dist/index';
 import { primitives, timeLocks, other, knowns } from './fixtures';
+import type { Fixture, FixtureGroup } from './fixtures';
 
-const createGroupTest = (description, fixtures) =>
+type SatisfierOptions = {
+  unknowns?: string[];
+  knowns?: string[];
+};
+
+const createGroupTest = (description: string, fixtures: FixtureGroup): void =>
   describe(description, () => {
-    for (const [testName, fixture] of Object.entries(fixtures)) {
-      const options =
+    for (const [testName, fixture] of Object.entries(fixtures) as Array<
+      [string, Fixture]
+    >) {
+      const options: SatisfierOptions | undefined =
         fixture.unknowns || fixture.knowns
-          ? { unknowns: fixture.unknowns, knowns: fixture.knowns }
+          ? {
+              ...(fixture.unknowns ? { unknowns: fixture.unknowns } : {}),
+              ...(fixture.knowns ? { knowns: fixture.knowns } : {})
+            }
           : undefined;
       if (fixture.throws) {
         test(testName, () => {
@@ -20,6 +31,9 @@ const createGroupTest = (description, fixtures) =>
         });
       } else {
         test(testName, () => {
+          if (!fixture.nonMalleableSats || !fixture.malleableSats) {
+            throw new Error(`Missing sats for fixture: ${testName}`);
+          }
           const result = satisfier(fixture.miniscript, options);
           expect(result.nonMalleableSats).toEqual(
             expect.arrayContaining(fixture.nonMalleableSats)

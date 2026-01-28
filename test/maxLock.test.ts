@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Jose-Luis Landabaso - https://bitcoinerlab.com
 // Distributed under the MIT software license
 
+// @ts-expect-error No types available for bip68
 import bip68 from 'bip68';
 import { maxLock } from '../src/satisfier/maxLock';
 describe('maxLock', () => {
@@ -75,18 +76,10 @@ describe('maxLock', () => {
     expect(maxLock(1, undefined, 'ABSOLUTE')).toBe(1);
     expect(maxLock(undefined, 1, 'ABSOLUTE')).toBe(1);
     expect(
-      maxLock(
-        bip68.encode({ seconds: 1 * 512 }),
-        undefined,
-        'RELATIVE'
-      )
+      maxLock(bip68.encode({ seconds: 1 * 512 }), undefined, 'RELATIVE')
     ).toBe(bip68.encode({ seconds: 1 * 512 }));
     expect(
-      maxLock(
-        undefined,
-        bip68.encode({ seconds: 1 * 512 }),
-        'RELATIVE'
-      )
+      maxLock(undefined, bip68.encode({ seconds: 1 * 512 }), 'RELATIVE')
     ).toBe(bip68.encode({ seconds: 1 * 512 }));
   });
 });
