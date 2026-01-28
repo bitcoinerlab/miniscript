@@ -165,8 +165,8 @@ helpers return `{ ok, correctness, error? }` and malleability helpers return
   and no duplicate keys.
 - `issane`: `issanesublevel` plus top-level `B` type requirement.
 
-The analysis returns a short error code (e.g., `Malleable`,
-`HeightTimelockCombination`, `RepeatedPubkeys`) to help with debugging.
+The analysis returns a short, human-readable error message (for example,
+`sane: malleable satisfactions possible.`) to help with debugging.
 
 ## Timelock mixing
 
