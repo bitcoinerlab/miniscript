@@ -3,7 +3,7 @@
 
 // @ts-expect-error No types available for bip68
 import bip68 from 'bip68';
-import { maxLock } from '../src/satisfier/maxLock';
+import { maxLock } from '../dist/satisfier/maxLock';
 describe('maxLock', () => {
   test('throws an error if lockType is undefined', () => {
     expect(() => maxLock(1, 2)).toThrow('lockType must be specified');
