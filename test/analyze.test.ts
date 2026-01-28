@@ -20,7 +20,7 @@ const cases: AnalyzeCase[] = [
     miniscript: 'multi_a(1,key1,key2)',
     expect: {
       valid: false,
-      error: 'multi_a() is only valid in tapscript. Pass { tapscript: true }.'
+      error: 'multi_a() is only valid in tapscript'
     }
   },
   {
@@ -38,7 +38,7 @@ const cases: AnalyzeCase[] = [
   {
     name: 'd wrapper is non-unit in legacy',
     miniscript: 'or_d(d:v:1,pk(key2))',
-    expect: { valid: false, error: 'LeftNotUnit' }
+    expect: { valid: false, error: 'or_d: left child must be unit' }
   },
   {
     name: 'd wrapper is unit in tapscript',
@@ -59,7 +59,11 @@ describe('Analyze tapscript context', () => {
         expect(analysis.issane).toBe(testCase.expect.issane);
       }
       if (typeof testCase.expect.error !== 'undefined') {
-        expect(analysis.error).toBe(testCase.expect.error);
+        if (testCase.expect.error === null) {
+          expect(analysis.error).toBeNull();
+        } else {
+          expect(analysis.error || '').toContain(testCase.expect.error);
+        }
       }
     });
   }

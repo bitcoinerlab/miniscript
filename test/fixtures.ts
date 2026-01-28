@@ -898,7 +898,7 @@ export const tapscript = {
   // These two vectors exercise the d: wrapper difference between legacy and
   // tapscript. In tapscript, MINIMALIF is consensus, so d:X becomes unit (u),
   // making or_d(d:v:1,...) valid. In legacy, d:X is non-unit, so the same
-  // miniscript fails with LeftNotUnit and is not sane.
+  // miniscript is not sane.
   'and_v(v:pk(key1),or_d(d:v:1,pk(key2))) in legacy': {
     miniscript: 'and_v(v:pk(key1),or_d(d:v:1,pk(key2)))',
     throws: 'Miniscript and_v(v:pk(key1),or_d(d:v:1,pk(key2))) is not sane.'

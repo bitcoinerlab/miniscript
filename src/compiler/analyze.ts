@@ -745,11 +745,12 @@ export const analyzeParsedNode = (
     needsSignature && nonMalleable && !timelockMix && !hasDuplicateKeys;
   const issane = issanesublevel && analysis.correctness.basicType === 'B';
   let error: string | null = null;
-  if (!needsSignature) error = 'SiglessBranch';
-  else if (!nonMalleable) error = 'Malleable';
-  else if (hasDuplicateKeys) error = 'RepeatedPubkeys';
-  else if (timelockMix) error = 'HeightTimelockCombination';
-  else if (analysis.correctness.basicType !== 'B') error = 'NonTopLevel';
+  if (!needsSignature) error = 'sane: signature required in every branch.';
+  else if (!nonMalleable) error = 'sane: malleable satisfactions possible.';
+  else if (hasDuplicateKeys) error = 'sane: repeated public keys.';
+  else if (timelockMix) error = 'sane: mixed height and time locks.';
+  else if (analysis.correctness.basicType !== 'B')
+    error = 'sane: top-level must be type B.';
 
   return {
     issane,
