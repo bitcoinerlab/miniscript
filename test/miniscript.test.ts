@@ -27,3 +27,9 @@ createGroupTest('Primitives', primitives);
 createGroupTest('Timelocks', timeLocks);
 createGroupTest('Other', other);
 createGroupTest('Tapscript', tapscript);
+
+test('wrapper forms are equivalent', () => {
+  const first = 'and_v(vc:pk_k(key1),c:pk_k(key2))';
+  const second = 'and_v(v:c:pk_k(key1),c:pk_k(key2))';
+  expect(compileMiniscript(first).asm).toEqual(compileMiniscript(second).asm);
+});
