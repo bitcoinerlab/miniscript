@@ -26,9 +26,20 @@ export type SatisfierResult = {
   unknownSats: Solution[];
 };
 
+/** Options for the satisfier.
+ *
+ * The satisfier runs the static analyzer before enumerating witnesses.
+ * Miniscript validity depends on script context, so tapscript must be specified
+ * when you are targeting tapscript rules. In tapscript, MINIMALIF is consensus,
+ * which changes the behavior of `d:X` (it becomes unit) and multisig uses
+ * `multi_a` (CHECKSIGADD) instead of `multi` (CHECKMULTISIG).
+ *
+ * If `tapscript` is omitted, the satisfier assumes legacy/segwit v0 rules.
+ */
 export type SatisfierOptions = {
   unknowns?: string[];
   knowns?: string[];
+  tapscript?: boolean;
 };
 
 /**
@@ -67,7 +78,7 @@ function witnessWU(
     // Check if the substring starts with "<sig"
     else if (substring.startsWith('<sig')) {
       //https://en.bitcoin.it/wiki/BIP_0137
-      //Signatures are either 73, 72, or 71 bytes long
+      //Signatures are either 73, 72 or 71 bytes long
       //Also https://bitcoin.stackexchange.com/a/77192/89665
       wu += 74; //73 + push op code
     }
@@ -126,7 +137,7 @@ function malleabilityAnalysis(
       internalSat.signatures = internalSat.asm.split(' ').filter(op => {
         return op.startsWith('<sig');
       });
-      //A non-zero solution without a signature is malleable, and a solution
+      //A non-zero solution without a signature is malleable and a solution
       //without signature is unacceptable anyway
       if (internalSat.signatures.length === 0) {
         internalSat.dontuse = true;
@@ -230,7 +241,7 @@ const evaluate = (
     });
   }
   //https://bitcoin.sipa.be/miniscript/
-  //The pk, pkh, and and_n fragments and t:, l:, and u: wrappers are syntactic
+  //The pk, pkh and and_n fragments and t:, l: and u: wrappers are syntactic
   //sugar for other miniscripts:
   miniscript = miniscript
     .replace(/^pk\(/, 'c:pk_k(')
@@ -283,7 +294,7 @@ const evaluate = (
             //passed to a satisfier maker function (arg is not a nested
             //miniscript expression).
             //That is, arg is one of these: a key or a hash or an nLockTime,
-            //nSequence, or the k (number of keys) in thresh/multi.
+            //nSequence or the k (number of keys) in thresh/multi.
             satisfactionMakerArgs.push(arg);
           } else {
             //arg is a miniscript expression that has to be further evaluated:
@@ -343,9 +354,14 @@ export const satisfier = (
 ): SatisfierResult => {
   let { unknowns } = options;
   const { knowns } = options;
+  const tapscript = Boolean(options.tapscript);
   let analysis: ReturnType<typeof analyzeMiniscript>;
   try {
-    analysis = analyzeMiniscript(miniscript);
+    // The satisfier checks correctness and malleability first. Miniscript
+    // validity depends on script context: tapscript enforces MINIMALIF,
+    // which changes d:X (unit property) and tapscript uses multi_a instead
+    // of multi (CHECKSIGADD vs CHECKMULTISIG).
+    analysis = analyzeMiniscript(miniscript, { tapscript });
   } catch (error) {
     const err = new Error(`Miniscript ${miniscript} is not sane.`);
     (err as Error & { cause?: unknown }).cause = error;

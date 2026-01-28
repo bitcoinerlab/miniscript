@@ -19,7 +19,7 @@ export type SatisfactionsMap = Record<string, Satisfactions>;
 type SatisfactionKey = 'sats' | 'dsats';
 
 /**
- * Given a `solutionTemplate`, such as "0 dsat(X) sat(Y) 1 sat(Z)", and given the
+ * Given a `solutionTemplate`, such as "0 dsat(X) sat(Y) 1 sat(Z)" and given the
  * sat/dissatisfactions for X, Y, Z,... (comprised in `satisfactionsMap`) it
  * computes all the possible combination of solutions returned in an array
  * of {@link Solution}.
@@ -65,7 +65,7 @@ type SatisfactionKey = 'sats' | 'dsats';
  * ```
  *
  * For the example above, satisfactionsMap.X provides sats and dsats for X,
- * satisfactionsMap.Y for Y, satisfactionsMap.Z for Z, and so on for any other
+ * satisfactionsMap.Y for Y, satisfactionsMap.Z for Z and so on for any other
  * placeholder used in the template.
  *
  * Returns an array of Solution objects containing the combined witness asm and
@@ -372,6 +372,45 @@ export const satisfactionsMaker = {
     });
 
     const sats: Solution[] = asms.map(asm => ({ asm }));
+
+    return { sats, dsats };
+  },
+  multi_a: (k: string | number, ...keys: string[]): Satisfactions => {
+    if (Number.isInteger(Number(k)) && Number(k) > 0) k = Number(k);
+    else throw new Error(`k must be positive number: ${k}`);
+
+    if (typeof k !== 'number') throw new Error('k must be a number:' + k);
+    if (k === 0) throw new Error('k cannot be 0');
+
+    const dsats = [{ asm: '0 '.repeat(keys.length).trim() }];
+
+    function keyCombinations(keys: string[], k: number): string[][] {
+      if (k === 0) {
+        return [[]];
+      }
+
+      const combinations: string[][] = [];
+
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (!key) throw new Error('Missing key');
+        const remainingKeys = keys.slice(i + 1);
+        const subCombinations = keyCombinations(remainingKeys, k - 1);
+        subCombinations.forEach(combination => {
+          combinations.push([key, ...combination]);
+        });
+      }
+
+      return combinations;
+    }
+
+    const sats: Solution[] = keyCombinations(keys, k).map(combination => {
+      const selectedKeys = new Set(combination);
+      const parts = keys.map(key =>
+        selectedKeys.has(key) ? `<sig(${key})>` : '0'
+      );
+      return { asm: parts.reverse().join(' ') };
+    });
 
     return { sats, dsats };
   },
