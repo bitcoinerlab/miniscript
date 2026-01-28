@@ -45,6 +45,11 @@ const cases: AnalyzeCase[] = [
     miniscript: 'or_d(d:v:1,pk(key2))',
     context: { tapscript: true },
     expect: { valid: true }
+  },
+  {
+    name: 'duplicate keys are not sane',
+    miniscript: 'multi(1,key1,key1)',
+    expect: { valid: true, issane: false, error: 'repeated public keys' }
   }
 ];
 
