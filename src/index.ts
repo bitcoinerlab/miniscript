@@ -5,4 +5,3 @@ import { satisfier } from './satisfier';
 import { compileMiniscript, analyzeMiniscript } from './compiler';
 
 export { compileMiniscript, analyzeMiniscript, satisfier };
-export type { AnalyzeOptions } from './compiler/analyze';

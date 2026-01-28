@@ -101,14 +101,6 @@ type InvalidAnalysisResult = {
 
 type AnalysisResult = ValidAnalysisResult | InvalidAnalysisResult;
 
-type AnalyzeContext = {
-  tapscript: boolean;
-};
-
-export type AnalyzeOptions = {
-  tapscript?: boolean;
-};
-
 export type ParsedAnalysisResult = {
   issane: boolean;
   issanesublevel: boolean;
@@ -253,8 +245,9 @@ const analyzeNode = (
   /** Parsed miniscript node. */
   node: Node,
   /** Analysis context. */
-  context: AnalyzeContext
+  context: { tapscript?: boolean }
 ): AnalysisResult => {
+  const tapscript = Boolean(context.tapscript);
   switch (node.type) {
     case '0': {
       const correctnessResult = falseCorrectness();
@@ -364,7 +357,7 @@ const analyzeNode = (
       });
     }
     case 'multi': {
-      if (context.tapscript)
+      if (tapscript)
         return makeInvalidResult('multi() is not valid in tapscript');
       const parsed = parseInteger(node.k, 'multi');
       if (!parsed.ok) return makeInvalidResult(parsed.error);
@@ -389,8 +382,10 @@ const analyzeNode = (
       });
     }
     case 'multi_a': {
-      if (!context.tapscript)
-        return makeInvalidResult('multi_a() is only valid in tapscript');
+      if (!tapscript)
+        return makeInvalidResult(
+          'multi_a() is only valid in tapscript. Pass { tapscript: true }.'
+        );
       const parsed = parseInteger(node.k, 'multi_a');
       if (!parsed.ok) return makeInvalidResult(parsed.error);
       if (parsed.value < 1 || parsed.value > node.keys.length) {
@@ -462,7 +457,7 @@ const analyzeNode = (
       // dup-if wrapper (d:)
       const child = analyzeNode(node.arg, context);
       if (!child.valid) return child;
-      const correctnessResult = context.tapscript
+      const correctnessResult = tapscript
         ? dupIfTapscriptCorrectness(child.correctness)
         : dupIfWshCorrectness(child.correctness);
       if (!correctnessResult.ok)
@@ -725,10 +720,9 @@ const analyzeNode = (
 export const analyzeParsedNode = (
   /** Parsed miniscript node. */
   node: Node,
-  /** Analysis options. */
-  options: AnalyzeOptions = {}
+  /** Analysis context. */
+  context: { tapscript?: boolean } = {}
 ): ParsedAnalysisResult => {
-  const context: AnalyzeContext = { tapscript: Boolean(options.tapscript) };
   const analysis = analyzeNode(node, context);
   if (!analysis.valid) {
     return {
@@ -773,9 +767,9 @@ export const analyzeParsedNode = (
 export const analyzeMiniscript = (
   /** Raw miniscript expression. */
   miniscript: string,
-  /** Analysis options. */
-  options: AnalyzeOptions = {}
+  /** Analysis context. */
+  context: { tapscript?: boolean } = {}
 ): ParsedAnalysisResult => {
   const node = parseExpression(miniscript);
-  return analyzeParsedNode(node, options);
+  return analyzeParsedNode(node, context);
 };

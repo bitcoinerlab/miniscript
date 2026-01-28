@@ -5,11 +5,7 @@
 // See COMPILER.md for AST and analysis details.
 import { parseExpression } from './parse';
 import { compileNode } from './compile';
-import {
-  analyzeMiniscript,
-  analyzeParsedNode,
-  type AnalyzeOptions
-} from './analyze';
+import { analyzeMiniscript, analyzeParsedNode } from './analyze';
 
 export type CompileResult = {
   asm: string;
@@ -28,12 +24,12 @@ const cleanAsm = (asm: string): string =>
 export const compileMiniscript = (
   /** Raw miniscript expression. */
   miniscript: string,
-  /** Analysis options. */
-  options: AnalyzeOptions = {}
+  /** Analysis context. */
+  context: { tapscript?: boolean } = {}
 ): CompileResult => {
   const node = parseExpression(miniscript);
   const asm = compileNode(node, false).join(' ');
-  const analysis = analyzeParsedNode(node, options);
+  const analysis = analyzeParsedNode(node, context);
   return {
     asm: cleanAsm(asm),
     issane: analysis.issane,

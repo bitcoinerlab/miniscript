@@ -45,7 +45,7 @@ const policy = 'or(and(pk(A),older(8640)),pk(B))';
 const { miniscript, asm, issane } = compilePolicy(policy);
 ```
 
-`issane` is a boolean that indicates whether the Miniscript is valid and follows the consensus and standardness rules for Bitcoin scripts. A sane Miniscript should have non-malleable solutions, not mix different timelock units on a single branch of the script, and not contain duplicate keys. In other words, it should be a well-formed and standards-compliant script that can be safely used in transactions.
+`issane` is a boolean that indicates whether the Miniscript is valid and follows the consensus and standardness rules for Bitcoin scripts. A sane Miniscript should have non-malleable solutions, not mix different timelock units on a single branch of the script and not contain duplicate keys. In other words, it should be a well-formed and standards-compliant script that can be safely used in transactions.
 
 ### Compiling Miniscript into Bitcoin script
 
@@ -115,6 +115,21 @@ unknownSats: [ {asm: "<sig(key2)> <key2> <sig(key1)> <key1> 1"} ]
 ```
 
 Instead of `unknowns`, the user has the option to provide the complementary argument `knowns`: `satisfier( miniscript, { knowns })`. This argument corresponds to the only pieces of information that are known. For instance, in the example above, `knowns` would be `['<sig(key3)>', '<sig(key4)>']`. It's important to note that either `knowns` or `unknowns` must be provided, but not both. If neither argument is provided, it's assumed that all signatures and preimages are known.
+
+### Tapscript context
+
+Miniscript validity depends on the script context. In tapscript, `MINIMALIF` is
+consensus, which changes the `d:X` wrapper (it becomes unit) and multisig uses
+`multi_a` (CHECKSIGADD) instead of `multi` (CHECKMULTISIG). The satisfier runs
+the static analyzer first, so you must pass the tapscript context when
+enumerating tapscript miniscripts:
+
+```javascript
+const { satisfier } = require('@bitcoinerlab/miniscript');
+
+const miniscript = 'multi_a(2,key1,key2,key3)';
+const { nonMalleableSats } = satisfier(miniscript, { tapscript: true });
+```
 
 The objects returned in the `nonMalleableSats`, `malleableSats` and `unknownSats` arrays consist of the following properties:
 

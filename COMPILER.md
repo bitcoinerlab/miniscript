@@ -97,7 +97,7 @@ static analyzer.
 The static type system mirrors the Miniscript specification:
 
 - **Correctness**: basic type (B/V/K/W), z/o/n input modifiers, dissatisfiable
-  flag, and unit output.
+  flag and unit output.
 - **Malleability**: signed (`s`), forced (`f`), expressive (`e`), plus derived
   `nonMalleable`.
 
@@ -109,7 +109,7 @@ return a parent type (or an error).
 
 Correctness is tracked as a small record with these fields:
 
-- `basicType`: one of `B`, `V`, `K`, `W` (boolean, verify, key, or wrapped output).
+- `basicType`: one of `B`, `V`, `K`, `W` (boolean, verify, key or wrapped output).
 - `zeroArg`: `z` modifier (consumes exactly 0 stack elements).
 - `oneArg`: `o` modifier (consumes exactly 1 stack element).
 - `nonZero`: `n` modifier (top input is never required to be zero).
@@ -129,7 +129,7 @@ Malleability uses the Miniscript `s/f/e` properties from the
 
 - `signed`: every satisfaction requires a signature.
 - `forced`: every dissatisfaction requires a signature (or none exist).
-- `expressive`: a unique unconditional dissatisfaction exists, and any
+- `expressive`: a unique unconditional dissatisfaction exists and any
   conditional dissatisfactions require signatures.
 - `nonMalleable`: derived from the spec's "Requires" column to guarantee a
   non-malleable satisfaction exists.
@@ -138,7 +138,7 @@ Malleability uses the Miniscript `s/f/e` properties from the
 
 Correctness properties answer "is this miniscript well-typed and semantically
 valid?" They ensure fragments are used in the right context (B/V/K/W rules),
-require the right kind of stack input, and preserve intended meaning. Without
+require the right kind of stack input and preserve intended meaning. Without
 correctness, a miniscript may compile to ASM but no longer represent the policy
 it claims (for example, an `or_b` that behaves like `and`).
 
@@ -202,4 +202,4 @@ When adding a new fragment, update all four layers:
    `src/compiler/correctness.ts` and `src/compiler/malleability.ts`.
 4. **Analyzer**: add a case in `analyze.js` and merge keys/timelocks.
 
-This keeps compile, analyze, and satisfy behavior consistent.
+This keeps compile, analyze and satisfy behavior consistent.
