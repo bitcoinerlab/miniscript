@@ -3,7 +3,7 @@
 
 /**
  * Miniscript malleability helpers.
- * See ANALYZER.md "Guaranteeing non-malleability" for details.
+ * See COMPILER.md "Guaranteeing non-malleability" for details.
  */
 
 /** Malleability flags for a miniscript fragment. */

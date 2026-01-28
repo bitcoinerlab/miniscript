@@ -3,7 +3,7 @@
 
 /**
  * Miniscript correctness helpers.
- * See ANALYZER.md "Correctness vs malleability" for details.
+ * See COMPILER.md "Correctness vs malleability" for details.
  */
 
 /** Basic miniscript output categories. */

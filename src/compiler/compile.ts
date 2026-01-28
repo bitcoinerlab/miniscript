@@ -3,7 +3,7 @@
 
 /**
  * Miniscript AST to ASM compiler.
- * See ANALYZER.md for AST details.
+ * See COMPILER.md for AST details.
  */
 
 import type { Node } from './parse';

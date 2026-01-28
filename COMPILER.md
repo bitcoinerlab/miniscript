@@ -15,11 +15,12 @@ enumeration intact.
 
 Key modules:
 
-- `src/miniscript/parse.js`: parses expressions into an AST.
-- `src/miniscript/compile.js`: compiles the AST into ASM.
-- `src/miniscript/types/`: correctness + malleability type rules.
-- `src/miniscript/analyze.js`: analysis pass that computes sanity flags.
-- `src/miniscript.js`: entry point that wires parse + compile + analysis.
+- `src/compiler/parse.ts`: parses expressions into an AST.
+- `src/compiler/compile.ts`: compiles the AST into ASM.
+- `src/compiler/correctness.ts`: correctness type rules.
+- `src/compiler/malleability.ts`: malleability type rules.
+- `src/compiler/analyze.ts`: analysis pass that computes sanity flags.
+- `src/compiler/index.ts`: entry point that wires parse + compile + analysis.
 
 ## AST model
 
@@ -100,8 +101,9 @@ The static type system mirrors the Miniscript specification:
 - **Malleability**: signed (`s`), forced (`f`), expressive (`e`), plus derived
   `nonMalleable`.
 
-These rules are encoded in `src/miniscript/types/` and are pure functions
-that take child types and return a parent type (or an error).
+These rules are encoded in `src/compiler/correctness.ts` and
+`src/compiler/malleability.ts` and are pure functions that take child types and
+return a parent type (or an error).
 
 ### Correctness fields
 
@@ -144,14 +146,14 @@ Malleability properties answer "if it is valid, can it be spent without
 malleable witnesses?" They are only meaningful after correctness passes.
 
 In code, correctness and malleability rules live side-by-side in
-`src/miniscript/types/`. Correctness helpers return
-`{ ok, correctness, error? }` and malleability helpers return
+`src/compiler/correctness.ts` and `src/compiler/malleability.ts`. Correctness
+helpers return `{ ok, correctness, error? }` and malleability helpers return
 `signed/forced/expressive` plus `nonMalleable`. Both are applied in
-`src/miniscript/analyze.js` during `analyzeNode`.
+`src/compiler/analyze.ts` during `analyzeNode`.
 
 ## Analysis pass
 
-`src/miniscript/analyze.js` walks the AST and computes:
+`src/compiler/analyze.ts` walks the AST and computes:
 
 - **Type information** via the type rules.
 - **Timelock mixing** via `TimelockInfo` and the combine functions.
@@ -196,7 +198,8 @@ When adding a new fragment, update all four layers:
 
 1. **Parser**: add a case in `parse.js`.
 2. **Compiler**: add ASM generation in `compile.js`.
-3. **Type system**: add correctness and malleability rules in `src/miniscript/types/`.
+3. **Type system**: add correctness and malleability rules in
+   `src/compiler/correctness.ts` and `src/compiler/malleability.ts`.
 4. **Analyzer**: add a case in `analyze.js` and merge keys/timelocks.
 
 This keeps compile, analyze, and satisfy behavior consistent.

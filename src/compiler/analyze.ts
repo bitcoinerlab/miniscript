@@ -3,58 +3,60 @@
 
 /**
  * Miniscript static analysis (type system, malleability, timelock mixing).
- * See ANALYZER.md for the full flow.
+ * See COMPILER.md for the full flow.
  */
 
 // @ts-expect-error No types available for bip68
 import bip68 from 'bip68';
 import { parseExpression, type Node } from './parse';
 import {
+  altCorrectness,
+  andBCorrectness,
+  andOrCorrectness,
+  andVCorrectness,
+  checkCorrectness,
+  dupIfTapscriptCorrectness,
+  dupIfWshCorrectness,
   falseCorrectness,
   hashCorrectness,
-  multiCorrectness,
   multiACorrectness,
+  multiCorrectness,
+  nonZeroCorrectness,
+  orBCorrectness,
+  orCCorrectness,
+  orDCorrectness,
+  orICorrectness,
   pkHCorrectness,
   pkKCorrectness,
+  swapCorrectness,
+  threshCorrectness,
   timeCorrectness,
   trueCorrectness,
-  falseMalleability,
-  hashMalleability,
-  checkMalleability,
-  multiMalleability,
-  nonZeroMalleability,
-  pkMalleability,
-  timeMalleability,
-  trueMalleability,
-  altCorrectness,
-  checkCorrectness,
-  dupIfWshCorrectness,
-  dupIfTapscriptCorrectness,
-  nonZeroCorrectness,
-  swapCorrectness,
   verifyCorrectness,
   zeroNotEqualCorrectness,
-  andBCorrectness,
+  type Correctness
+} from './correctness';
+import {
   andBMalleability,
-  andOrCorrectness,
   andOrMalleability,
-  andVCorrectness,
   andVMalleability,
-  orBCorrectness,
-  orBMalleability,
-  orCCorrectness,
-  orCMalleability,
-  orDCorrectness,
-  orDMalleability,
-  orICorrectness,
-  orIMalleability,
-  threshCorrectness,
-  thresholdMalleability,
+  checkMalleability,
   dupIfMalleability,
+  falseMalleability,
+  hashMalleability,
+  multiMalleability,
+  nonZeroMalleability,
+  orBMalleability,
+  orCMalleability,
+  orDMalleability,
+  orIMalleability,
+  pkMalleability,
+  thresholdMalleability,
+  timeMalleability,
+  trueMalleability,
   verifyMalleability,
-  type Correctness,
   type Malleability
-} from './types';
+} from './malleability';
 
 type TimelockInfo = {
   csv_with_height: boolean;

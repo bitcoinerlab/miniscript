@@ -2,7 +2,7 @@
 // Distributed under the MIT software license
 
 import { satisfier } from './satisfier';
-import { compileMiniscript, analyzeMiniscript } from './miniscript';
+import { compileMiniscript, analyzeMiniscript } from './compiler';
 
 export { compileMiniscript, analyzeMiniscript, satisfier };
-export type { AnalyzeOptions } from './miniscript/analyze';
+export type { AnalyzeOptions } from './compiler/analyze';

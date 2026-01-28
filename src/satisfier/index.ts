@@ -6,7 +6,7 @@ import {
   type Solution,
   type Satisfactions
 } from './satisfactions';
-import { analyzeMiniscript } from '../miniscript';
+import { analyzeMiniscript } from '../compiler';
 
 /**
  * An object containing the satisfier results.

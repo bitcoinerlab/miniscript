@@ -2,14 +2,14 @@
 // Distributed under the MIT software license
 
 // Core Miniscript compiler entry point.
-// See ANALYZER.md for AST and analysis details.
-import { parseExpression } from './miniscript/parse';
-import { compileNode } from './miniscript/compile';
+// See COMPILER.md for AST and analysis details.
+import { parseExpression } from './parse';
+import { compileNode } from './compile';
 import {
   analyzeMiniscript,
   analyzeParsedNode,
   type AnalyzeOptions
-} from './miniscript/analyze';
+} from './analyze';
 
 export type CompileResult = {
   asm: string;

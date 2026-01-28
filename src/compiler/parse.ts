@@ -4,7 +4,7 @@
 /**
  * Miniscript expression parser.
  * Builds a lightweight AST shared by the compiler and analyzer.
- * See ANALYZER.md for the AST shape and examples.
+ * See COMPILER.md for the AST shape and examples.
  */
 
 export type Node =
