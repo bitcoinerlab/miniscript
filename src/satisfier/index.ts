@@ -36,6 +36,16 @@ export type SatisfierResult = {
  *
  * If `tapscript` is omitted, the satisfier assumes legacy/segwit v0 rules.
  */
+/**
+ * Options for the satisfier.
+ *
+ * The satisfier runs the static analyzer before enumerating witnesses.
+ * Miniscript validity depends on script context. In tapscript, MINIMALIF is
+ * consensus, which changes the `d:X` wrapper (it becomes unit), and multisig
+ * uses `multi_a` (CHECKSIGADD) instead of `multi` (CHECKMULTISIG).
+ *
+ * If `tapscript` is omitted, legacy rules are assumed.
+ */
 export type SatisfierOptions = {
   unknowns?: string[];
   knowns?: string[];
@@ -213,6 +223,7 @@ function isScalarArg(
     case 'hash256':
     case 'hash160':
     case 'multi':
+    case 'multi_a':
       return true;
     case 'thresh':
       if (argPosition === 0) return true;

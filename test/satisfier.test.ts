@@ -2,12 +2,13 @@
 // Distributed under the MIT software license
 
 import { satisfier } from '../dist/index';
-import { primitives, timeLocks, other, knowns } from './fixtures';
+import { primitives, timeLocks, other, knowns, tapscript } from './fixtures';
 import type { Fixture, FixtureGroup } from './fixtures';
 
 type SatisfierOptions = {
   unknowns?: string[];
   knowns?: string[];
+  tapscript?: boolean;
 };
 
 const createGroupTest = (description: string, fixtures: FixtureGroup): void =>
@@ -16,10 +17,11 @@ const createGroupTest = (description: string, fixtures: FixtureGroup): void =>
       [string, Fixture]
     >) {
       const options: SatisfierOptions | undefined =
-        fixture.unknowns || fixture.knowns
+        fixture.unknowns || fixture.knowns || fixture.tapscript
           ? {
               ...(fixture.unknowns ? { unknowns: fixture.unknowns } : {}),
-              ...(fixture.knowns ? { knowns: fixture.knowns } : {})
+              ...(fixture.knowns ? { knowns: fixture.knowns } : {}),
+              ...(fixture.tapscript ? { tapscript: true } : {})
             }
           : undefined;
       if (fixture.throws) {
@@ -62,5 +64,6 @@ describe('Satisfier', () => {
   createGroupTest('Timelocks', timeLocks);
   createGroupTest('Primitives', primitives);
   createGroupTest('Other', other);
+  createGroupTest('Tapscript', tapscript);
   createGroupTest('Knowns & unknowns combinations', knowns);
 });

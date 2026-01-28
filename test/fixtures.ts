@@ -10,6 +10,7 @@ export type Fixture = {
   throws?: string;
   unknowns?: string[];
   knowns?: string[];
+  tapscript?: boolean;
   nonMalleableSats?: Array<{
     asm: string;
     nSequence?: number | string;
@@ -868,6 +869,50 @@ export const other = {
     malleableSats: []
   }
 };
+
+export const tapscript = {
+  'multi_a(1,key1,key2)': {
+    miniscript: 'multi_a(1,key1,key2)',
+    tapscript: true,
+    script: '<key1> OP_CHECKSIG <key2> OP_CHECKSIGADD 1 OP_NUMEQUAL',
+    nonMalleableSats: [{ asm: '0 <sig(key1)>' }, { asm: '<sig(key2)> 0' }],
+    malleableSats: []
+  },
+  'multi_a(2,key1,key2,key3)': {
+    miniscript: 'multi_a(2,key1,key2,key3)',
+    tapscript: true,
+    script:
+      '<key1> OP_CHECKSIG <key2> OP_CHECKSIGADD <key3> OP_CHECKSIGADD 2 OP_NUMEQUAL',
+    nonMalleableSats: [
+      { asm: '0 <sig(key2)> <sig(key1)>' },
+      { asm: '<sig(key3)> 0 <sig(key1)>' },
+      { asm: '<sig(key3)> <sig(key2)> 0' }
+    ],
+    malleableSats: []
+  },
+  'multi(1,key1,key2) in tapscript': {
+    miniscript: 'multi(1,key1,key2)',
+    tapscript: true,
+    throws: 'Miniscript multi(1,key1,key2) is not sane.'
+  },
+  // These two vectors exercise the d: wrapper difference between legacy and
+  // tapscript. In tapscript, MINIMALIF is consensus, so d:X becomes unit (u),
+  // making or_d(d:v:1,...) valid. In legacy, d:X is non-unit, so the same
+  // miniscript fails with LeftNotUnit and is not sane.
+  'and_v(v:pk(key1),or_d(d:v:1,pk(key2))) in legacy': {
+    miniscript: 'and_v(v:pk(key1),or_d(d:v:1,pk(key2)))',
+    throws: 'Miniscript and_v(v:pk(key1),or_d(d:v:1,pk(key2))) is not sane.'
+  },
+  'and_v(v:pk(key1),or_d(d:v:1,pk(key2))) in tapscript': {
+    miniscript: 'and_v(v:pk(key1),or_d(d:v:1,pk(key2)))',
+    tapscript: true,
+    script:
+      '<key1> OP_CHECKSIGVERIFY OP_DUP OP_IF 1 OP_VERIFY OP_ENDIF OP_IFDUP OP_NOTIF <key2> OP_CHECKSIG OP_ENDIF',
+    nonMalleableSats: [{ asm: '1 <sig(key1)>' }],
+    malleableSats: [{ asm: '<sig(key2)> 0 <sig(key1)>' }]
+  }
+};
+
 export const knowns = {
   'with unknowns - and_v(v:pk(k),sha256(H))': {
     miniscript: 'and_v(v:pk(k),sha256(H))',
