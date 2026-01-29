@@ -94,7 +94,9 @@ or disable it with `satisfier(miniscript, { maxSolutions: null});`.
 
 However, the recommended way to avoid exponential blow-ups is to prune using
 `unknowns`. Pass `unknowns` with the pieces of information that are not
-available, e.g., `<sig(key)>` or `<ripemd160_preimage(H)>` in the example above.
+available, e.g., `<sig(key)>` or `<ripemd160_preimage(H)>`.
+
+For example:
 
 ```javascript
 const { satisfier } = require('@bitcoinerlab/miniscript');
@@ -106,7 +108,7 @@ const unknowns = ['<sig(key1)>', '<sig(key2)>'];
 const { nonMalleableSats, malleableSats } = satisfier(miniscript, { unknowns });
 ```
 
-which produces:
+produces:
 
 ```text
 nonMalleableSats: [
@@ -215,11 +217,11 @@ large `thresh` trees). As a reference point, `multi(2,key1,...,key20)` produces
 - When spending, construct witnesses **only** from `nonMalleableSats`.
 - Treat `malleableSats` (and `unknownSats` when enabled) as diagnostics and never use them for production spends.
 
-When you pass `knowns` or `unknowns`, pruning assumes those values will never
-change in the future. With `multi(4,key1,...,key20)`, if you pass `knowns` for
-only four keys, pruning yields 1 satisfaction instead of 4,845. If six
-signatures are known, pruning yields 15 satisfactions (`C(6,4) = 15`). Enable
-`computeUnknowns` only when you want to inspect the discarded solutions.
+When you pass `knowns` or `unknowns`, pruning is applied. With
+`multi(4,key1,...,key20)`, if you pass `knowns` for only four keys, pruning
+yields 1 satisfaction instead of 4,845. If six signatures are known, pruning
+yields 15 satisfactions (`C(6,4) = 15`). Enable `computeUnknowns` only when you
+want to inspect the discarded solutions.
 
 ## Authors and Contributors
 
