@@ -81,7 +81,14 @@ type SatisfactionsMakerFn = (
   ...args: Array<string | number | Satisfactions>
 ) => Satisfactions;
 
-/** Computes the weight units (WU) of a witness. */
+/**
+ * Computes the weight units (WU) of a witness.
+ *
+ * NOTE: For tapscript, this is a heuristic based on witness stack items only.
+ * It does not include script-path/control-block overhead, so it is suitable for
+ * ordering solutions within a single miniscript but not for comparing weights
+ * across different scripts.
+ */
 function witnessWU(
   /** The witness to compute the WU of. */
   asm: string,
