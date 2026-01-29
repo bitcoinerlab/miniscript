@@ -1,24 +1,10 @@
 # Bitcoin Miniscript
 
-This project is a JavaScript implementation of [Bitcoin Miniscript](https://bitcoin.sipa.be/miniscript/), a high-level language for describing Bitcoin spending conditions.
-
-It includes a novel Miniscript Satisfier for generating explicit script witnesses that are decoupled from the tx signer, as well as a transpilation of [Peter Wuille's C++ code](https://github.com/sipa/miniscript) for compiling spending policies into Miniscript and Bitcoin scripts.
-
-## Features
-
-- Compile Policies into Miniscript and Bitcoin scripts.
-- A Miniscript satisfier that enumerates satisfactions and classifies them as non-malleable vs malleable.
-- The Miniscript Satisfier is able to generate explicit script witnesses from Miniscript expressions using variables, such as `pk(key)`.
-
-  For example, Miniscript `and_v(v:pk(key),after(10))` can be satisfied with `[{ asm: '<sig(key)>', nLockTime: 10 }]`.
-
-- The ability to generate different satisfactions depending on the presence of `unknowns` (or complimentary `knowns`).
-
-  For example, Miniscript `c:and_v(or_c(pk(key1),v:ripemd160(H)),pk_k(key2))` can be satisfied with: `[{ asm: '<sig(key2)> <ripemd160_preimage(H)> 0' }]`.
-
-  However, if `unknowns: ['<ripemd160_preimage(H)>']` is set, then the Miniscript can be satisfied with: `[{ asm: '<sig(key2)> <sig(key1)>' }]` because this solution can no longer be considered malleable, given then assumption that an attacker does not have access to the preimage.
-
-- Thoroughly tested.
+Miniscript is a structured, analyzable language for Bitcoin spending conditions
+that compiles to Bitcoin Script. This package provides a TypeScript
+implementation for compiling and analyzing miniscript and for deriving witnesses
+(the data a spending transaction must provide to unlock an output created by the
+miniscript-derived script).
 
 ## Installation
 
@@ -35,7 +21,7 @@ You can test the examples in this section using the online playground demo avail
 ### Compiling Policies into Miniscript and Bitcoin script
 
 Policies are a higher-level, human-readable language for describing spending
-conditions (for example: and/or clauses, timelocks, and key checks). Policy
+conditions (for example: and/or clauses, timelocks and key checks). Policy
 compilation is provided by the companion package
 [`@bitcoinerlab/miniscript-policies`](https://github.com/bitcoinerlab/miniscript-policies).
 
@@ -58,9 +44,9 @@ const miniscript = 'and_v(v:pk(key),or_b(l:after(100),al:after(200)))';
 const { asm } = compileMiniscript(miniscript);
 ```
 
-### Generating explicit script witnesses
+### Generating script witnesses
 
-To generate explicit script witnesses from a Miniscript, you can use the `satisfier` function:
+To generate script witnesses from a Miniscript, you can use the `satisfier` function:
 
 ```javascript
 const { satisfier } = require('@bitcoinerlab/miniscript');
@@ -70,6 +56,15 @@ const miniscript =
 
 const { nonMalleableSats, malleableSats } = satisfier(miniscript);
 ```
+
+SegWit eliminated classic txid malleability, but witness malleability still
+exists: a spend can have multiple valid witness stacks that keep the txid
+unchanged while changing the transaction weight and fee rate. An attacker could
+swap a valid witness for another and make the transaction larger or smaller,
+which can affect fee policies or mempool acceptance. The satisfier therefore
+separates non-malleable solutions (stable, unique witnesses) from malleable
+ones (alternate valid witnesses that can change weight) and you should only
+use the non-malleable set when constructing spends.
 
 `satisfier` returns an object with the following keys:
 
@@ -86,16 +81,20 @@ nonMalleableSats: [
 ]
 ```
 
-Where satisfactions are ordered in ascending Weight Unit size.
+Where satisfactions are ordered in ascending Weight Unit size, so you can
+choose the smallest witness and pay less in fees.
 
-Enumeration can grow quickly for large scripts, so the satisfier prunes unknown
-solutions by default and caps enumeration at 1000 solutions. You can override
-that limit with `maxSolutions`, or disable it with `maxSolutions: null`.
+**Managing Satisfactions Growth**
 
-To reduce the number of satisfactions (especially for large scripts), pass
-`unknowns` with the pieces of information you do not have, f.ex., `<sig(key)>`
-or `<ripemd160_preimage(H)>`. These values are assumed to never become
-available in the future.
+Some scripts can generate many satisfactions, which can make computation
+expensive or even infeasible. To keep this manageable, the satisfier enforces a
+default cap of `1000` solutions. The cap counts all derived solutions, including
+intermediate combinations and throws once exceeded. You can raise it
+or disable it with `satisfier(miniscript, { maxSolutions: null});`.
+
+However, the recommended way to avoid exponential blow-ups is to prune using
+`unknowns`. Pass `unknowns` with the pieces of information that are not
+available, e.g., `<sig(key)>` or `<ripemd160_preimage(H)>` in the example above.
 
 ```javascript
 const { satisfier } = require('@bitcoinerlab/miniscript');
@@ -105,6 +104,15 @@ const miniscript =
 const unknowns = ['<sig(key1)>', '<sig(key2)>'];
 
 const { nonMalleableSats, malleableSats } = satisfier(miniscript, { unknowns });
+```
+
+which produces:
+
+```text
+nonMalleableSats: [
+  {asm: "<sig(key4)> 0"}
+  {asm: "<sig(key3)> <key3> 0 <key1> 1"}
+]
 ```
 
 Instead of `unknowns`, the user has the option to provide the complementary
@@ -122,8 +130,8 @@ is to include all attacker-accessible material in `knowns`, then pick a
 non-malleable satisfaction that uses only your own material.
 
 For debugging or educational purposes, you can compute the discarded unknown
-satisfactions by setting `computeUnknowns: true`. This populates
-`unknownSats` with the solutions that contain unknown data:
+satisfactions by setting `computeUnknowns: true`. This populates `unknownSats`
+with the solutions that contain unknown data:
 
 ```javascript
 const { nonMalleableSats, unknownSats } = satisfier(miniscript, {
@@ -138,7 +146,7 @@ nonMalleableSats: [
 unknownSats: [ {asm: "<sig(key2)> <key2> <sig(key1)> <key1> 1"} ]
 ```
 
-By default `computeUnknowns` is disabled to keep enumeration manageable, so
+By default `computeUnknowns` is disabled to keep the number of solutions manageable, so
 unknown satisfactions are pruned and `unknownSats` is not returned.
 
 ### Tapscript context
@@ -147,7 +155,7 @@ Miniscript validity depends on the script context. In tapscript, `MINIMALIF` is
 consensus, which changes the `d:X` wrapper (it becomes unit) and multisig uses
 `multi_a` (CHECKSIGADD) instead of `multi` (CHECKMULTISIG). The satisfier runs
 the static analyzer first, so you must pass the tapscript context when
-enumerating tapscript miniscripts:
+deriving satisfactions for tapscript miniscripts:
 
 ```javascript
 const { satisfier } = require('@bitcoinerlab/miniscript');
@@ -164,15 +172,15 @@ properties:
 - `nSequence`: an integer representing the nSequence value, if needed.
 - `nLockTime`: an integer representing the nLockTime value, if needed.
 
-### Enumerating satisfactions
+### Deriving satisfactions
 
 The `satisfier` runs the Miniscript [static type system](https://bitcoin.sipa.be/miniscript/)
 analysis and throws when a miniscript is not sane. A sane miniscript follows
 consensus and standardness rules: it avoids malleable-only paths, does not mix
-timelock units on a single branch, and does not contain duplicate keys. For sane
-scripts it **enumerates satisfactions** and classifies them as
+timelock units on a single branch and does not contain duplicate keys. For sane
+scripts it **derives satisfactions** and classifies them as
 **non-malleable** or **malleable**. Even for sane scripts, there can be
-malleable satisfactions; they should never be used to spend funds.
+malleable satisfactions. They should never be used to spend funds.
 
 Example (safe vs malleable satisfactions):
 
@@ -195,20 +203,15 @@ In this example, the satisfier exposes both safe and malleable witnesses. Use
 only `nonMalleableSats` when constructing a spend; `malleableSats` (and
 `unknownSats` when enabled) are diagnostics only.
 
-Enumeration can grow exponentially with Miniscript structure (e.g., large
-`thresh` trees). As a reference point, `multi(2,key1,...,key20)` produces 190
-satisfactions and completes in about 200ms on a laptop, while
+Remember that solutions can grow exponentially with Miniscript structure (e.g.,
+large `thresh` trees). As a reference point, `multi(2,key1,...,key20)` produces
+190 satisfactions and completes in about 200ms on a laptop, while
 `multi(4,key1,...,key20)` yields 4,845 satisfactions and takes around 6 seconds.
-To keep enumeration practical, the satisfier prunes unknown satisfactions by
-default and enforces `maxSolutions` (1000 by default). The limit counts every
-enumerated solution, including dsats and intermediate combinations, not only
-the final valid witnesses. Set `maxSolutions: null` to disable the limit, or
-lower it to fail fast on large scripts.
 
 #### Recommended usage
 
 - Call `analyzeMiniscript` (or inspect `issane` from `compileMiniscript`) to
-  ensure the miniscript is sane before enumeration.
+  ensure the miniscript is sane before deriving witnesses.
 - When spending, construct witnesses **only** from `nonMalleableSats`.
 - Treat `malleableSats` (and `unknownSats` when enabled) as diagnostics and never use them for production spends.
 
@@ -240,20 +243,16 @@ git clone https://github.com/bitcoinerlab/miniscript.git
 npm install
 ```
 
-3. Make sure you have the [`em++` compiler](https://emscripten.org/) in your PATH.
-
-4. Run the Makefile:
-
-```
-make
-```
-
-This will download and build Wuille's sources and generate the necessary Javascript files for the compilers.
-
-5. Build the project:
+3. Build the project:
 
 ```
 npm run build
+```
+
+4. Run the test suite:
+
+```
+npm test
 ```
 
 This will build the project and generate the necessary files in the `dist` directory.
