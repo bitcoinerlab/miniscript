@@ -2,7 +2,8 @@
 // Distributed under the MIT software license
 
 import {
-  satisfactionsMaker,
+  createSatisfactionsMaker,
+  type SatisfactionsMaker,
   type Solution,
   type Satisfactions
 } from './satisfactions';
@@ -17,13 +18,14 @@ import { analyzeMiniscript } from '../compiler';
  *   malleable sat() expressions.
  * - unknownSats: An array of {@link Solution} objects representing the sat()
  *   expressions that contain some of the `unknown` pieces of information.
+ *   This property is only present when `computeUnknowns` is enabled.
  *
  * @see {@link Solution}
  */
 export type SatisfierResult = {
   nonMalleableSats: Solution[];
   malleableSats: Solution[];
-  unknownSats: Solution[];
+  unknownSats?: Solution[];
 };
 
 /** Options for the satisfier.
@@ -45,12 +47,24 @@ export type SatisfierResult = {
  * uses `multi_a` (CHECKSIGADD) instead of `multi` (CHECKMULTISIG).
  *
  * If `tapscript` is omitted, legacy rules are assumed.
+ *
+ * If `computeUnknowns` is true, satisfactions that require unknown signatures
+ * or preimages are enumerated and returned in `unknownSats`. When it is false
+ * (default), unknown satisfactions are pruned during enumeration.
+ *
+ * `maxSolutions` defaults to 1000 and limits the total number of enumerated
+ * solutions (including dsats and intermediate combinations). Set it to `null`
+ * to disable the limit. Passing 0 or a negative value throws.
  */
 export type SatisfierOptions = {
   unknowns?: string[];
   knowns?: string[];
   tapscript?: boolean;
+  computeUnknowns?: boolean;
+  maxSolutions?: number | null;
 };
+
+const DEFAULT_MAX_SOLUTIONS = 1000;
 
 /**
  * Internal helper type used only for malleabilityAnalysis.
@@ -240,7 +254,9 @@ function isScalarArg(
  */
 const evaluate = (
   /** A miniscript expression. */
-  miniscript: string
+  miniscript: string,
+  /** The satisfactions maker used for evaluation. */
+  satisfactionsMaker: SatisfactionsMaker
 ): Satisfactions => {
   if (typeof miniscript !== 'string')
     throw new Error('Invalid expression: ' + miniscript);
@@ -309,7 +325,7 @@ const evaluate = (
             satisfactionMakerArgs.push(arg);
           } else {
             //arg is a miniscript expression that has to be further evaluated:
-            satisfactionMakerArgs.push(evaluate(arg));
+            satisfactionMakerArgs.push(evaluate(arg, satisfactionsMaker));
           }
           argPosition++;
         }
@@ -365,7 +381,9 @@ export const satisfier = (
 ): SatisfierResult => {
   let { unknowns } = options;
   const { knowns } = options;
+  const { maxSolutions: rawMaxSolutions } = options;
   const tapscript = Boolean(options.tapscript);
+  const computeUnknowns = options.computeUnknowns === true;
   let analysis: ReturnType<typeof analyzeMiniscript>;
   try {
     // The satisfier checks correctness and malleability first. Miniscript
@@ -396,40 +414,75 @@ export const satisfier = (
     throw new Error(`Incorrect types for unknowns / knowns`);
   }
 
+  let maxSolutions: number | undefined;
+  if (rawMaxSolutions === null) {
+    maxSolutions = undefined;
+  } else if (typeof rawMaxSolutions === 'undefined') {
+    maxSolutions = DEFAULT_MAX_SOLUTIONS;
+  } else {
+    if (!Number.isInteger(rawMaxSolutions) || rawMaxSolutions <= 0) {
+      throw new Error('maxSolutions must be a positive integer.');
+    }
+    maxSolutions = rawMaxSolutions;
+  }
+
+  const knownList = knowns || [];
+  const unknownList = unknowns || [];
+  const signaturePattern =
+    /<sig\(|<sha256_preimage\(|<hash256_preimage\(|<ripemd160_preimage\(|<hash160_preimage\(/;
+  const isKnownSolution = (asm: string): boolean => {
+    if (unknowns) {
+      return !unknownList.some(unknown => asm.includes(unknown));
+    }
+    const delKnowns = knownList.reduce(
+      (acc, known) => acc.replace(known, ''),
+      asm
+    );
+    return !signaturePattern.test(delKnowns);
+  };
+
+  const isSolutionAllowed = computeUnknowns
+    ? undefined
+    : (solution: Solution): boolean => isKnownSolution(solution.asm);
+  const isSignatureKnown = computeUnknowns
+    ? undefined
+    : (key: string): boolean => {
+        const token = `<sig(${key})>`;
+        if (unknowns) {
+          return !unknownList.includes(token);
+        }
+        return knownList.includes(token);
+      };
+  const satisfactionsMaker = createSatisfactionsMaker({
+    isSolutionAllowed,
+    isSignatureKnown,
+    maxSolutions
+  });
+
   const knownSats: Solution[] = [];
   const unknownSats: Solution[] = [];
-  const sats: Solution[] = evaluate(miniscript).sats || [];
+  const sats: Solution[] = evaluate(miniscript, satisfactionsMaker).sats || [];
   sats.forEach(sat => {
     if (typeof sat.nSequence === 'undefined') delete sat.nSequence;
     if (typeof sat.nLockTime === 'undefined') delete sat.nLockTime;
     //Clean format: 1 consecutive spaces at most, no leading & trailing spaces
     sat.asm = sat.asm.replace(/  +/g, ' ').trim();
 
-    if (unknowns) {
-      if (unknowns.some(unknown => sat.asm.includes(unknown))) {
-        unknownSats.push(sat);
-      } else {
-        knownSats.push(sat);
-      }
-    } else {
-      const knownList = knowns || [];
-      const delKnowns = knownList.reduce(
-        (acc, known) => acc.replace(known, ''),
-        sat.asm
-      );
-      if (
-        delKnowns.match(
-          /<sig\(|<sha256_preimage\(|<hash256_preimage\(|<ripemd160_preimage\(|<hash160_preimage\(/
-        )
-      ) {
-        //Even thought all known pieces of information are removed, there are
-        //still other pieces of info needed. Thus, this sat is unkown.
-        unknownSats.push(sat);
-      } else {
-        knownSats.push(sat);
-      }
+    const isKnown = isKnownSolution(sat.asm);
+    if (isKnown) {
+      knownSats.push(sat);
+    } else if (computeUnknowns) {
+      unknownSats.push(sat);
     }
   });
 
-  return { ...malleabilityAnalysis(knownSats), unknownSats };
+  const malleabilityResults = malleabilityAnalysis(knownSats);
+  if (computeUnknowns) {
+    return {
+      ...malleabilityResults,
+      unknownSats
+    };
+  }
+
+  return malleabilityResults;
 };

@@ -72,7 +72,7 @@ const miniscript =
 const { nonMalleableSats, malleableSats } = satisfier(miniscript);
 ```
 
-`satisfier` makes sure that output `satisfactions` are non-malleable and that the `miniscript` is sane by itself and it returns an object with keys:
+`satisfier` returns an object with the following keys:
 
 - `nonMalleableSats`: an array of objects representing good, non-malleable witnesses.
 - `malleableSats`: an array of objects representing malleable witnesses that should not be used.
@@ -89,7 +89,14 @@ nonMalleableSats: [
 
 Where satisfactions are ordered in ascending Weight Unit size.
 
-In addition, `unknowns` can be set with the pieces of information the user does not have, f.ex., `<sig(key)>` or `<ripemd160_preimage(H)>`:
+Enumeration can grow quickly for large scripts, so the satisfier prunes unknown
+solutions by default and caps enumeration at 1000 solutions. You can override
+that limit with `maxSolutions`, or disable it with `maxSolutions: null`.
+
+To reduce the number of satisfactions (especially for large scripts), pass
+`unknowns` with the pieces of information you do not have, f.ex., `<sig(key)>`
+or `<ripemd160_preimage(H)>`. These values are assumed to never become
+available in the future.
 
 ```javascript
 const { satisfier } = require('@bitcoinerlab/miniscript');
@@ -98,15 +105,33 @@ const miniscript =
   'c:or_i(andor(c:pk_h(key1),pk_h(key2),pk_h(key3)),pk_k(key4))';
 const unknowns = ['<sig(key1)>', '<sig(key2)>'];
 
-const { nonMalleableSats, malleableSats, unknownSats } = satisfier(
-  miniscript,
-  { unknowns }
-);
+const { nonMalleableSats, malleableSats } = satisfier(miniscript, { unknowns });
 ```
 
-When passing `unknowns`, `satisfier` returns an additional object: `{ unknownSats }` with an array of objects representing satisfactions that containt some of the `unknown` pieces of information:
+Instead of `unknowns`, the user has the option to provide the complementary
+argument `knowns`: `satisfier(miniscript, { knowns })`. This argument
+corresponds to the only pieces of information that are known. For instance, in
+the example above, `knowns` would be `['<sig(key3)>', '<sig(key4)>']`. It's
+important to note that either `knowns` or `unknowns` must be provided, but not
+both. If neither argument is provided, it's assumed that all signatures and
+preimages are known.
+
+When modeling adversaries, include in `knowns` everything an attacker might
+also possess, not only your own secrets. If you leave attacker material out of
+`knowns`, you can mistakenly classify a malleable path as safe. A safe pattern
+is to include all attacker-accessible material in `knowns`, then pick a
+non-malleable satisfaction that uses only your own material.
+
+For debugging or educational purposes, you can compute the discarded unknown
+satisfactions by setting `computeUnknowns: true`. This populates
+`unknownSats` with the solutions that contain unknown data:
 
 ```javascript
+const { nonMalleableSats, unknownSats } = satisfier(miniscript, {
+  unknowns,
+  computeUnknowns: true
+});
+
 nonMalleableSats: [
   {asm: "<sig(key4)> 0"}
   {asm: "<sig(key3)> <key3> 0 <key1> 1"}
@@ -114,7 +139,8 @@ nonMalleableSats: [
 unknownSats: [ {asm: "<sig(key2)> <key2> <sig(key1)> <key1> 1"} ]
 ```
 
-Instead of `unknowns`, the user has the option to provide the complementary argument `knowns`: `satisfier( miniscript, { knowns })`. This argument corresponds to the only pieces of information that are known. For instance, in the example above, `knowns` would be `['<sig(key3)>', '<sig(key4)>']`. It's important to note that either `knowns` or `unknowns` must be provided, but not both. If neither argument is provided, it's assumed that all signatures and preimages are known.
+By default `computeUnknowns` is disabled to keep enumeration manageable, so
+unknown satisfactions are pruned and `unknownSats` is not returned.
 
 ### Tapscript context
 
@@ -131,21 +157,21 @@ const miniscript = 'multi_a(2,key1,key2,key3)';
 const { nonMalleableSats } = satisfier(miniscript, { tapscript: true });
 ```
 
-The objects returned in the `nonMalleableSats`, `malleableSats` and `unknownSats` arrays consist of the following properties:
+The objects returned in the `nonMalleableSats`, `malleableSats` and (when
+`computeUnknowns` is enabled) `unknownSats` arrays consist of the following
+properties:
 
 - `asm`: a string with the script witness.
 - `nSequence`: an integer representing the nSequence value, if needed.
 - `nLockTime`: an integer representing the nLockTime value, if needed.
 
-### Satisfier-based malleability analysis
+### Enumerating satisfactions
 
-This library implements the Miniscript [static type system](https://bitcoin.sipa.be/miniscript/)
-in JavaScript and exposes `issane`/`issanesublevel` via `analyzeMiniscript`. The
-`satisfier` uses that analysis and will throw if a miniscript is not sane.
-
-When a miniscript is sane, the satisfier **enumerates satisfactions** and
-classifies each as **non-malleable** or **malleable**. Even for sane scripts,
-there can be malleable satisfactions; they should never be used to spend funds.
+The `satisfier` runs the Miniscript [static type system](https://bitcoin.sipa.be/miniscript/)
+analysis and throws when a miniscript is not sane. For sane scripts it
+**enumerates satisfactions** and classifies them as **non-malleable** or
+**malleable**. Even for sane scripts, there can be malleable satisfactions; they
+should never be used to spend funds.
 
 Example (safe vs malleable satisfactions):
 
@@ -162,30 +188,36 @@ const result = satisfier(miniscript);
   ],
   "malleableSats": [
     { "asm": "<sig(key3)> <sig(key2)> <sig(key1)>" }
-  ],
-  "unknownSats": []
+  ]
 }
 ```
 
 In this example, the satisfier exposes both safe and malleable witnesses. Use
-only `nonMalleableSats` when constructing a spend.
+only `nonMalleableSats` when constructing a spend; `malleableSats` (and
+`unknownSats` when enabled) are diagnostics only.
+
+Enumeration can grow exponentially with Miniscript structure (e.g., large
+`thresh` trees). As a reference point, `multi(2,key1,...,key20)` produces 190
+satisfactions and completes in about 200ms on a laptop, while
+`multi(4,key1,...,key20)` yields 4,845 satisfactions and takes around 6 seconds.
+To keep enumeration practical, the satisfier prunes unknown satisfactions by
+default and enforces `maxSolutions` (1000 by default). The limit counts every
+enumerated solution, including dsats and intermediate combinations, not only
+the final valid witnesses. Set `maxSolutions: null` to disable the limit, or
+lower it to fail fast on large scripts.
 
 #### Recommended usage
 
 - Call `analyzeMiniscript` (or inspect `issane` from `compileMiniscript`) to
 ensure the miniscript is sane before enumeration.
 - When spending, construct witnesses **only** from `nonMalleableSats`.
-- Treat `malleableSats` as diagnostics and never use them for production spends.
+- Treat `malleableSats` (and `unknownSats` when enabled) as diagnostics and never use them for production spends.
 
-### Tradeoffs and limitations
-
-The number of satisfactions can grow exponentially with Miniscript structure
-(e.g., large `thresh` trees). Most practical scripts remain small, but complex
-scripts can become expensive to analyze or infeasible to enumerate. As a
-reference point, `multi(2,key1,...,key20)` produces 190 satisfactions and
-completes in about 200ms on a laptop, while `multi(4,key1,...,key20)` yields
-4,845 satisfactions and takes around 6 seconds. This is a known tradeoff of the
-satisfier-based approach.
+When you pass `knowns` or `unknowns`, pruning assumes those values will never
+change in the future. With `multi(4,key1,...,key20)`, if you pass `knowns` for
+only four keys, pruning yields 1 satisfaction instead of 4,845. If six
+signatures are known, pruning yields 15 satisfactions (`C(6,4) = 15`). Enable
+`computeUnknowns` only when you want to inspect the discarded solutions.
 
 ## Authors and Contributors
 
