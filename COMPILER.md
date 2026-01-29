@@ -1,17 +1,17 @@
 # Miniscript Analyzer Internals
 
 This document is for contributors who want to understand or extend the
-JavaScript Miniscript analyzer. It focuses on the static type system and how it
+TypeScript Miniscript analyzer. It focuses on the static type system and how it
 produces `issane` and `issanesublevel`, while keeping the satisfier-based
-enumeration intact.
+derivation flow intact.
 
 ## High-level flow
 
 1. Parse the Miniscript expression into a lightweight AST.
 2. Run static analysis on the AST (correctness + malleability + timelocks).
 3. Derive `issane` and `issanesublevel`.
-4. If sane, the satisfier enumerates witnesses and classifies them as
-   non-malleable or malleable.
+4. If sane, the satisfier derives satisfactions (witnesses) and classifies them
+   as non-malleable or malleable.
 
 Key modules:
 
@@ -30,7 +30,8 @@ Miniscript expression where each node corresponds to one fragment or wrapper.
 The parser builds a minimal AST that matches Miniscript fragments and wrappers.
 A **node** is a plain object that always contains:
 
-- `type`: the Miniscript fragment identifier (string)
+- `type`: the normalized node kind (fragment or wrapper identifier) after
+  syntactic sugar expansion (string)
 
 Depending on the fragment, a node may also contain:
 
@@ -87,7 +88,8 @@ type in:
   - `pk(x)` -> `c:pk_k(x)`
   - `pkh(x)` -> `c:pk_h(x)`
   - `and_n(x,y)` -> `andor(x,y,0)`
-  - `t:`/`l:`/`u:` wrappers expand to `and_v`/`or_i` forms
+  - `t:`/`l:`/`u:` wrappers expand to `and_v`/`or_i` forms (so they never
+    appear as `type` values)
 
 The AST is intentionally simple so it can be shared by the compiler and the
 static analyzer.
@@ -183,23 +185,28 @@ The combine rules follow the spec:
 
 ## Satisfier integration
 
-The satisfier still enumerates all satisfactions, but it now runs the static
-analysis first. If `issane` is false, it throws:
+The satisfier runs the static analysis first. If `issane` is false, it throws:
 
 ```
 Miniscript <expr> is not sane.
 ```
 
-Raw analysis errors are attached to `err.cause` for debugging.
+By default, unknown satisfactions are pruned unless `computeUnknowns` is
+enabled. When `computeUnknowns` is true, the satisfier keeps solutions that
+contain unknown signatures or preimages and surfaces them via `unknownSats`.
+Enumeration is capped by `maxSolutions` (default 1000), which counts every
+derived solution including dsats and intermediate combinations; set
+`maxSolutions: null` to disable the cap. Raw analysis errors are attached to
+`err.cause` for debugging.
 
 ## Extending the analyzer
 
 When adding a new fragment, update all four layers:
 
-1. **Parser**: add a case in `parse.js`.
-2. **Compiler**: add ASM generation in `compile.js`.
+1. **Parser**: add a case in `parse.ts`.
+2. **Compiler**: add ASM generation in `compile.ts`.
 3. **Type system**: add correctness and malleability rules in
    `src/compiler/correctness.ts` and `src/compiler/malleability.ts`.
-4. **Analyzer**: add a case in `analyze.js` and merge keys/timelocks.
+4. **Analyzer**: add a case in `analyze.ts` and merge keys/timelocks.
 
 This keeps compile, analyze and satisfy behavior consistent.
