@@ -30,22 +30,21 @@ npm install @bitcoinerlab/miniscript
 
 ## Usage
 
-You can test the examples in this section using the online playground demo available at https://bitcoinerlab.com/modules/miniscript.
+You can test the examples in this section using the online playground demo available at <https://bitcoinerlab.com/modules/miniscript>.
 
 ### Compiling Policies into Miniscript and Bitcoin script
 
-Policy compilation is provided by the companion package
-[`@bitcoinerlab/miniscript-policies`](https://github.com/bitcoinerlab/miniscript-policies),
-which bundles the reference C++ compiler via Emscripten.
+Policies are a higher-level, human-readable language for describing spending
+conditions (for example: and/or clauses, timelocks, and key checks). Policy
+compilation is provided by the companion package
+[`@bitcoinerlab/miniscript-policies`](https://github.com/bitcoinerlab/miniscript-policies).
 
 ```javascript
 const { compilePolicy } = require('@bitcoinerlab/miniscript-policies');
 
 const policy = 'or(and(pk(A),older(8640)),pk(B))';
-const { miniscript, asm, issane } = compilePolicy(policy);
+const { miniscript } = compilePolicy(policy);
 ```
-
-`issane` is a boolean that indicates whether the Miniscript is valid and follows the consensus and standardness rules for Bitcoin scripts. A sane Miniscript should have non-malleable solutions, not mix different timelock units on a single branch of the script and not contain duplicate keys. In other words, it should be a well-formed and standards-compliant script that can be safely used in transactions.
 
 ### Compiling Miniscript into Bitcoin script
 
@@ -56,7 +55,7 @@ const { compileMiniscript } = require('@bitcoinerlab/miniscript');
 
 const miniscript = 'and_v(v:pk(key),or_b(l:after(100),al:after(200)))';
 
-const { asm, issane } = compileMiniscript(miniscript);
+const { asm } = compileMiniscript(miniscript);
 ```
 
 ### Generating explicit script witnesses
@@ -168,10 +167,12 @@ properties:
 ### Enumerating satisfactions
 
 The `satisfier` runs the Miniscript [static type system](https://bitcoin.sipa.be/miniscript/)
-analysis and throws when a miniscript is not sane. For sane scripts it
-**enumerates satisfactions** and classifies them as **non-malleable** or
-**malleable**. Even for sane scripts, there can be malleable satisfactions; they
-should never be used to spend funds.
+analysis and throws when a miniscript is not sane. A sane miniscript follows
+consensus and standardness rules: it avoids malleable-only paths, does not mix
+timelock units on a single branch, and does not contain duplicate keys. For sane
+scripts it **enumerates satisfactions** and classifies them as
+**non-malleable** or **malleable**. Even for sane scripts, there can be
+malleable satisfactions; they should never be used to spend funds.
 
 Example (safe vs malleable satisfactions):
 
@@ -186,9 +187,7 @@ const result = satisfier(miniscript);
     { "asm": "0 <sig(key2)> <sig(key1)>" },
     { "asm": "<sig(key3)> 0 <sig(key1)>" }
   ],
-  "malleableSats": [
-    { "asm": "<sig(key3)> <sig(key2)> <sig(key1)>" }
-  ]
+  "malleableSats": [{ "asm": "<sig(key3)> <sig(key2)> <sig(key1)>" }]
 }
 ```
 
@@ -209,7 +208,7 @@ lower it to fail fast on large scripts.
 #### Recommended usage
 
 - Call `analyzeMiniscript` (or inspect `issane` from `compileMiniscript`) to
-ensure the miniscript is sane before enumeration.
+  ensure the miniscript is sane before enumeration.
 - When spending, construct witnesses **only** from `nonMalleableSats`.
 - Treat `malleableSats` (and `unknownSats` when enabled) as diagnostics and never use them for production spends.
 
