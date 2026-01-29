@@ -84,7 +84,9 @@ type SatisfactionsMakerFn = (
 /** Computes the weight units (WU) of a witness. */
 function witnessWU(
   /** The witness to compute the WU of. */
-  asm: string
+  asm: string,
+  /** Whether tapscript sizing rules apply. */
+  tapscript: boolean = false
 ): number {
   // Split the witness string into an array of substrings
   // a miniscipt witness is either, <sig..., <sha256..., <hash256...,
@@ -95,16 +97,21 @@ function witnessWU(
   let wu = 0;
 
   // Iterate over the array of substrings
+  // Legacy ECDSA signatures are 71-73 bytes including the sighash byte
+  // (+ push), see BIP-0137.
+  // Taproot Schnorr signatures are 64 bytes; we assume +1 sighash + push here.
+  // Legacy compressed pubkeys are 33 bytes (+ push), taproot x-only keys are
+  // 32 bytes (+ push).
+  const signatureWU = tapscript ? 66 : 74;
+  const pubkeyWU = tapscript ? 33 : 34;
+
   for (const substring of substrings) {
     if (substring === '') {
       //skip
     }
     // Check if the substring starts with "<sig"
     else if (substring.startsWith('<sig')) {
-      //https://en.bitcoin.it/wiki/BIP_0137
-      //Signatures are either 73, 72 or 71 bytes long
-      //Also https://bitcoin.stackexchange.com/a/77192/89665
-      wu += 74; //73 + push op code
+      wu += signatureWU;
     }
     //
     // preimages:
@@ -123,9 +130,7 @@ function witnessWU(
     }
     // Pub keys
     else if (substring.startsWith('<')) {
-      //https://en.bitcoin.it/wiki/BIP_0137
-      //Compressed public keys are 33 bytes
-      wu += 34; //33 + push op code
+      wu += pubkeyWU;
     } else if (substring === '1' || substring === '0') {
       wu += 1;
     } else {
@@ -150,7 +155,9 @@ function witnessWU(
  */
 function malleabilityAnalysis(
   /** The array of sat() solutions to analyze. */
-  sats: Solution[]
+  sats: Solution[],
+  /** Whether tapscript sizing rules apply. */
+  tapscript: boolean = false
 ): { nonMalleableSats: Solution[]; malleableSats: Solution[] } {
   const internalSats: InternalSolution[] = sats
     .map((sat): InternalSolution => {
@@ -174,7 +181,7 @@ function malleabilityAnalysis(
       return internalSat;
     })
     // Sort sats by weight unit in ascending order
-    .sort((a, b) => witnessWU(a.asm) - witnessWU(b.asm));
+    .sort((a, b) => witnessWU(a.asm, tapscript) - witnessWU(b.asm, tapscript));
 
   for (const sat of internalSats) {
     //For the same nLockTime and nSequence, check if otherSat signatures are a
@@ -476,7 +483,7 @@ export const satisfier = (
     }
   });
 
-  const malleabilityResults = malleabilityAnalysis(knownSats);
+  const malleabilityResults = malleabilityAnalysis(knownSats, tapscript);
   if (computeUnknowns) {
     return {
       ...malleabilityResults,
