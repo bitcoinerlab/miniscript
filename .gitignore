@@ -8,3 +8,4 @@ test/**/*.js
 test/**/*.d.ts
 src/bindings.js
 .opencode*
+release.md
