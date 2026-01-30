@@ -13,18 +13,18 @@ export type Fixture = {
   tapscript?: boolean;
   nonMalleableSats: Array<{
     asm: string;
-    nSequence?: number | string;
-    nLockTime?: number | string;
+    nSequence?: number;
+    nLockTime?: number;
   }>;
   malleableSats: Array<{
     asm: string;
-    nSequence?: number | string;
-    nLockTime?: number | string;
+    nSequence?: number;
+    nLockTime?: number;
   }>;
   unknownSats: Array<{
     asm: string;
-    nSequence?: number | string;
-    nLockTime?: number | string;
+    nSequence?: number;
+    nLockTime?: number;
   }>;
   [key: string]: unknown;
 };

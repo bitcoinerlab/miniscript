@@ -113,3 +113,19 @@ describe('Satisfier limits', () => {
     expect(result.unknownSats).toBeUndefined();
   });
 });
+
+describe('Satisfier ordering', () => {
+  test('sorts non-malleable sats by WU', () => {
+    const miniscript =
+      'c:or_i(andor(c:pk_h(key1),pk_h(key2),pk_h(key3)),pk_k(key4))';
+    const result = satisfier(miniscript, { computeUnknowns: false });
+
+    expect(result.nonMalleableSats).toEqual([
+      { asm: '<sig(key4)> 0' },
+      { asm: '<sig(key3)> <key3> 0 <key1> 1' },
+      { asm: '<sig(key2)> <key2> <sig(key1)> <key1> 1' }
+    ]);
+    expect(result.malleableSats).toEqual([]);
+    expect(result.unknownSats).toBeUndefined();
+  });
+});

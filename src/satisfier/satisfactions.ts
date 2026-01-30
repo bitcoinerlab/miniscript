@@ -5,8 +5,8 @@ import { maxLock } from './maxLock';
 
 export type Solution = {
   asm: string;
-  nSequence?: number | string;
-  nLockTime?: number | string;
+  nSequence?: number;
+  nLockTime?: number;
 };
 
 export type Satisfactions = {
@@ -323,10 +323,10 @@ export const createSatisfactionsMaker = ({
       sats: filterSolutions([{ asm: `<sig(${key})> <${key}>` }])
     }),
     older: (n: string | number): Satisfactions => ({
-      sats: filterSolutions([{ asm: ``, nSequence: n }])
+      sats: filterSolutions([{ asm: ``, nSequence: Number(n) }])
     }),
     after: (n: string | number): Satisfactions => ({
-      sats: filterSolutions([{ asm: ``, nLockTime: n }])
+      sats: filterSolutions([{ asm: ``, nLockTime: Number(n) }])
     }),
     sha256: (h: string): Satisfactions => ({
       sats: filterSolutions([{ asm: `<sha256_preimage(${h})>` }]),
