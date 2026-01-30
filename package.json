@@ -1,6 +1,6 @@
 {
   "name": "@bitcoinerlab/miniscript",
-  "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a Miniscript compiler, as well as a novel Satisfier for generating expressive witness scripts.",
+  "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a compiler/analyzer with a signer‑agnostic satisfier that derives symbolic witnesses (e.g., <sig(key)>).",
   "homepage": "https://bitcoinerlab.com/modules/miniscript",
   "version": "2.0.0",
   "author": "Jose-Luis Landabaso <landabaso@gmail.com>",
@@ -36,7 +36,7 @@
     "build:test": "tsc --project ./node_modules/@bitcoinerlab/configs/tsconfig.test.json",
     "build": "npm run build:src && npm run build:test",
     "lint": "./node_modules/@bitcoinerlab/configs/scripts/lint.sh",
-    "test:unit": "jest",
+    "test:unit": "jest --verbose",
     "test": "npm run lint && npm run build && npm run test:unit",
     "prepublishOnly": "npm test"
   },

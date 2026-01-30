@@ -9,3 +9,4 @@ test/**/*.d.ts
 src/bindings.js
 .opencode*
 release.md
+PR.md
