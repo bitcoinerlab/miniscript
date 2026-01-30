@@ -1,8 +1,12 @@
 .DS_Store
 *.swp
 node_modules/
+dist/
 docs/
 webdocs/
-dist/
-miniscript/
+test/**/*.js
+test/**/*.d.ts
 src/bindings.js
+.opencode*
+release.md
+PR.md
