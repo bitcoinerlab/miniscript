@@ -207,10 +207,10 @@ const { nonMalleableSats } = satisfier(miniscript, { tapscript: true });
 ```
 
 Some scripts are only sane under tapscript. For example,
-`and_v(v:pk(key1),or_d(d:v:1,pk(key2)))` is not sane in segwit v0 (P2WSH),
+`and_v(v:pk(key1),or_d(d:v:1,pk(key2)))` is not sane in SegWit v0 (P2WSH),
 but it becomes valid in tapscript because `d:v:1` is unit under `MINIMALIF`.
 
-## TLDR; Recommended usage
+## TL;DR; Recommended usage
 
 - Call `analyzeMiniscript` (or inspect `issane` from `compileMiniscript`) to
 ensure the miniscript is sane before deriving witnesses.
