@@ -30,7 +30,8 @@ compilation is provided by the companion package
 [`@bitcoinerlab/miniscript-policies`](https://github.com/bitcoinerlab/miniscript-policies).
 
 ```javascript
-const { compilePolicy } = require('@bitcoinerlab/miniscript-policies');
+const { ready, compilePolicy } = require('@bitcoinerlab/miniscript-policies');
+await ready;
 
 const policy = 'or(and(pk(A),older(8640)),pk(B))';
 const { miniscript } = compilePolicy(policy);
