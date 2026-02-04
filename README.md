@@ -280,3 +280,9 @@ npm run tests
 ## License
 
 This project is licensed under the MIT License.
+
+## 🙏 Supporters
+
+The BitcoinerLAB Project is proudly supported by the [OpenSats](https://opensats.org) organization.
+
+[![OpenSats logo](https://raw.githubusercontent.com/bitcoinerlab/.github/main/profile/assets/opensats.svg)](https://opensats.org)
