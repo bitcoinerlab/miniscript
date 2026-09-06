@@ -73,3 +73,29 @@ describe('Analyze tapscript context', () => {
     });
   }
 });
+
+const nKeys = (n: number): string =>
+  Array.from({ length: n }, (_, i) => `key${i + 1}`).join(',');
+
+describe('multi pubkey count', () => {
+  test('rejects multi with more than 20 pubkeys', () => {
+    expect(() => analyzeMiniscript(`multi(2,${nKeys(21)})`)).toThrow(
+      /at most 20 keys/
+    );
+  });
+
+  test('accepts multi with 20 pubkeys', () => {
+    const analysis = analyzeMiniscript(`multi(2,${nKeys(20)})`);
+    expect(analysis.valid).toBe(true);
+    expect(analysis.error).toBeNull();
+  });
+
+  // multi_a maps to CHECKSIGADD, not CHECKMULTISIG (limit 999, not 20).
+  test('multi_a with more than 20 pubkeys is valid in tapscript', () => {
+    const analysis = analyzeMiniscript(`multi_a(2,${nKeys(21)})`, {
+      tapscript: true
+    });
+    expect(analysis.valid).toBe(true);
+    expect(analysis.error).toBeNull();
+  });
+});
