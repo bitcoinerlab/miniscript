@@ -2,7 +2,7 @@
   "name": "@bitcoinerlab/miniscript",
   "description": "Bitcoin Miniscript, a high-level language for describing Bitcoin spending conditions. It includes a compiler/analyzer with a signer‑agnostic satisfier that derives symbolic witnesses (e.g., <sig(key)>).",
   "homepage": "https://bitcoinerlab.com/modules/miniscript",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "Jose-Luis Landabaso <landabaso@gmail.com>",
   "license": "MIT",
   "repository": {
