@@ -156,7 +156,14 @@ const parseBase = (
       if (args.length < 2)
         throw new Error(`Invalid ${name}() args: ${expression}`);
       const k = getArg(args, 0);
-      return { type: name, k, keys: args.slice(1) };
+      const keys = args.slice(1);
+      // CHECKMULTISIG consensus cap. multi_a uses CHECKSIGADD (up to 999).
+      if (name === 'multi' && keys.length > 20) {
+        throw new Error(
+          `Invalid multi() args: at most 20 keys (CHECKMULTISIG limit)`
+        );
+      }
+      return { type: name, k, keys };
     }
     case 'thresh': {
       if (args.length < 2)

@@ -33,3 +33,19 @@ test('wrapper forms are equivalent', () => {
   const second = 'and_v(v:c:pk_k(key1),c:pk_k(key2))';
   expect(compileMiniscript(first).asm).toEqual(compileMiniscript(second).asm);
 });
+
+const nKeys = (n: number): string =>
+  Array.from({ length: n }, (_, i) => `key${i + 1}`).join(',');
+
+test('multi with more than 20 keys is rejected', () => {
+  expect(() => compileMiniscript(`multi(2,${nKeys(21)})`)).toThrow(
+    /at most 20 keys/
+  );
+});
+
+test('multi with 20 keys compiles', () => {
+  const { asm, error } = compileMiniscript(`multi(2,${nKeys(20)})`);
+  expect(error).toBeNull();
+  expect(asm.match(/<key\d+>/g)).toHaveLength(20);
+  expect(asm).toMatch(/<14> OP_CHECKMULTISIG$/);
+});
